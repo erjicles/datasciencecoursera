@@ -16,7 +16,7 @@ rankall <- function(outcome, num = "best") {
     states_in_data <- unique(outcome_data[,7])
     
     ## Initialize the result
-    result_data <- data.frame(states_in_data, vector(mode="integer", length=length(states_in_data)))
+    result_data <- data.frame(state = states_in_data, hospital = vector(mode="integer", length=length(states_in_data)))
     
     ## For each state, find the hospital of the given rank
     result_data[,2] <- sapply(result_data[,1], rankhospital, outcome = outcome, num = num)
