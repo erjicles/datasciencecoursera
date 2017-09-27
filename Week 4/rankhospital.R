@@ -1,30 +1,25 @@
 ## Week 4 Programming Assignment
 
-## Takes two arguments: the 2-character abbreviated name of a state
-## and an outcome name.
-## Reads the outcome-of-care-measures.csv file and returns a character
-## vector with the name of the hospital that has the best (i.e. lowest)
-## 30-day mortality for the specified outcome in that state.
-## The outcomes can be one of "heart attack", "heart failure", or "pneumonia".
+## Takes three arguments: the 2-character abbreviated name of a state (state),
+## an outcome (outcome), and the ranking of a hospital in that state for that
+## outcome (num).
+## Reads the outcome-of-care-measures.csv file and returns a character vector
+## with the name of the hospital that has the ranking specified by the num
+## argument.
 
 ## Test cases:
-## best("TX", "heart attack")
-## "CYPRESS FAIRBANKS MEDICAL CENTER"
-## best("TX", "heart failure")
-## "FORT DUNCAN MEDICAL CENTER"
-## best("MD", "heart attack")
-## "JOHNS HOPKINS HOSPITAL, THE"
-## best("MD", "pneumonia")
-## "GREATER BALTIMORE MEDICAL CENTER"
-## best("BB", "heart attack")
-## Error in best("BB", "heart attack") : invalid state
-## best("NY", "hert attack")
-## Error in best("NY", "hert attack") : invalid outcome
+## rankhospital("TX", "heart failure", 4)
+## "DETAR HOSPITAL NAVARRO"
+## rankhospital("MD", "heart attack", "worst")
+## "HARFORD MEMORIAL HOSPITAL"
+## rankhospital("MN", "heart attack", 5000)
+## NA
 
-best <- function(state, outcome) {
+rankhospital <- function(state, outcome, num = "best") {
     ## Put the arguments into lower case
     outcome_lower <- tolower(outcome)
     state_lower <- tolower(state)
+    num_lower <- tolower(num)
     
     ## Read outcome data from the file
     outcome_data <- read.csv("outcome-of-care-measures.csv", colClasses = "character")
@@ -72,8 +67,26 @@ best <- function(state, outcome) {
             ),
         ]
     
-    ## Return hospital name in that state with lowest 30-day death
-    ## rate
-    best_hospital <- state_outcome_data[1,1]
-    best_hospital
+    ## Convert the num parameter into an integer
+    rank_to_check <- 1
+    if (num_lower == "best") {
+        rank_to_check <- 1
+    } else if (num_lower == "worst") {
+        rank_to_check <- nrow(state_outcome_data)
+    } else if (!is.integer(as.integer(num_lower))) {
+        stop("invalid num")
+    } else {
+        rank_to_check <- as.integer(num_lower)
+    }
+    if (rank_to_check < 1) {
+        stop("invalid num")
+    }
+    
+    if (rank_to_check > nrow(state_outcome_data)) {
+        return(NA)
+    }
+    
+    ## Return the nth ranked hospital in the state for the given outcome
+    nth_hospital <- state_outcome_data[rank_to_check,1]
+    nth_hospital
 }
