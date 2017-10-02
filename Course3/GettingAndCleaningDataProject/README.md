@@ -1,8 +1,3 @@
----
-title: "README"
-output: html_document
----
-
 ## Introduction
 
 This repository contains the script and result dataset for the Getting and Cleaning Data Course Project.
