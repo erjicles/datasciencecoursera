@@ -37,7 +37,9 @@ write.table(summarized_tidy_data, file="summarized_tidy_data.txt", row.names=FAL
 ```
 
 ## What the script does
+
 The script performs the following actions:
+
 0. Reads the data from the data files.
 1. Merges the training and the test sets to create one data set.
 2. Extracts only the measurements on the mean and standard deviation for each measurement.
