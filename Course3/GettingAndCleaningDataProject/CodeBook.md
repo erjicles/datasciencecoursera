@@ -17,6 +17,7 @@ summarized_tidy_data
     + The id number for the subject performing the activitiy.
 
 *All subsequent variables represent the mean of all 10299 observations of the given variable, grouped by each Activity and Subject*
+
 3. "tBodyAcc-mean()-X"              
 4. "tBodyAcc-mean()-Y"              
 5. "tBodyAcc-mean()-Z"              
