@@ -1,8 +1,3 @@
----
-title: "Code Book"
-output: html_document
----
-
 ## Introduction
 
 This code book describes the variables, transformations, and steps taken to clean up and analyze the data for the assignment.
