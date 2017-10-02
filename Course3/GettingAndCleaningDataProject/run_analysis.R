@@ -77,7 +77,7 @@ train_x_train <- read.csv("UCI HAR Dataset/train/X_train.txt",sep="",header=F)
 train_y_train <- read.csv("UCI HAR Dataset/train/y_train.txt", header=F,sep="")
 
 
-#### 1. Merges the training and the test sets to create one data set. 
+#### 1. Merge the training and the test sets to create one data set. 
 
 ## Combine the test dataset tables into one table
 ## Analogous to: test_data <- cbind(test_subject_test, test_y_test, test_x_test)
@@ -97,7 +97,7 @@ tidy_data <-
     ) %>%
 
 
-## 4. Appropriately labels the data set with descriptive variable names.
+## 4. Appropriately label the data set with descriptive variable names.
 
     ## Rename the columns to provide descriptive variable names
     ##  Column 1: Subject
@@ -115,7 +115,7 @@ tidy_data <-
         ) %>%
 
 
-#### 3. Uses descriptive activity names to name the activities in the data set
+#### 3. Use descriptive activity names to name the activities in the data set
 
     ## Join on the activity_labels table by ActivityId to add a column containing
     ## the descriptive activity labels
@@ -125,7 +125,7 @@ tidy_data <-
         by.y="ActivityId",
         sort=FALSE) %>%
 
-#### 2. Extracts only the measurements on the mean and standard deviation for each
+#### 2. Extract only the measurements on the mean and standard deviation for each
 ####    measurement.
     
     ## Convert into a table dataframe
@@ -149,7 +149,7 @@ rm(list=c(
     "train_y_train")
    )
 
-## 5. From the data set in step 4, creates a second, independent tidy data set
+## 5. From the data set in step 4, create a second, independent tidy data set
 ## with the average of each variable for each activity and each subject.
 
 ## Create a new dataset, grouped on Activity and Subject of the tidy dataset
