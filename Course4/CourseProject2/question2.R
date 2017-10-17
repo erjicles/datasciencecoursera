@@ -16,7 +16,11 @@ baltimore_data <- subset(summary_data, fips == "24510")
 baltimore_yearly_totals <- tapply(baltimore_data$Emissions, baltimore_data$year, sum)
 
 ## Plot the Baltimore total PM2.5 emissions from all sources for each year
-barplot(baltimore_yearly_totals, xlab="Year", ylab="Baltimore Total PM2.5 Emission [tons]")
+barplot(
+    baltimore_yearly_totals, 
+    xlab="Year", 
+    ylab="Total PM2.5 Emissions [tons]", 
+    main="Baltimore Total PM2.5 Emissions (all sources)")
 
 ## Save the plot to an image file
 dev.copy(png, filename="question2_plot.png", width=480, height=480)
