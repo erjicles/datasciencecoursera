@@ -26,5 +26,5 @@ barplot(
     main="Baltimore Total PM2.5 Emissions (motor vehicles)")
 
 ## Save the plot to an image file
-dev.copy(png, filename="question5_plot.png", width=480, height=480)
+dev.copy(png, filename="plot5.png", width=480, height=480)
 dev.off()
