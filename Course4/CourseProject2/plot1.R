@@ -21,5 +21,5 @@ barplot(
     main="Total PM2.5 Emissions (all sources)")
 
 ## Save the plot to an image file
-dev.copy(png, filename="question1_plot.png", width=480, height=480)
+dev.copy(png, filename="plot1.png", width=480, height=480)
 dev.off()

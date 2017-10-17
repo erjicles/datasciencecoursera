@@ -12,8 +12,8 @@ source_data <- readRDS("data/Source_Classification_Code.rds")
 ## Assume the source name has "Coal" and "Comb" or "Combustion" in the name
 coal_comb_sources <-
     source_data %>%
-    filter(grepl("Coal", Short.Name)) %>% 
-    filter(grepl("Comb|Combustion", Short.Name))
+    filter(grepl("Coal", Short.Name, ignore.case=T)) %>% 
+    filter(grepl("Comb|Combustion", Short.Name, ignore.case=T))
 
 ## Filter the summary data to only keep coal combustion-related sources
 coal_comb_data <- filter(summary_data, SCC %in% coal_comb_sources$SCC)
@@ -29,5 +29,5 @@ barplot(
     main="Total PM2.5 Emissions (coal combustion-related sources)")
 
 ## Save the plot to an image file
-dev.copy(png, filename="question4_plot.png", width=480, height=480)
+dev.copy(png, filename="plot4.png", width=480, height=480)
 dev.off()

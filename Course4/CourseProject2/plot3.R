@@ -42,5 +42,5 @@ g <- g + ggtitle("Baltimore Total PM2.5 Emissions By Type")
 print(g)
 
 ## Save the plot to an image file
-dev.copy(png, filename="question3_plot.png", width=480, height=480)
+dev.copy(png, filename="plot3.png", width=480, height=480)
 dev.off()
