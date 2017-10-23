@@ -1,0 +1,84 @@
+---
+title: "Placeholder"
+output: html_document
+---
+
+## Synopsis
+
+Placeholder
+
+## Data Processing
+
+We downloaded the U.S. National Oceanic and Atmospheric Administration's (NOAA) dataset for this assignment from the course link:
+[Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) (on 10/23/2017)
+
+The course also provided documentation on the dataset:
+* National Weather Service [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf)
+* National Climatic Data Center Storm Events [FAQ](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf)
+
+### Reading in the data
+
+We first read in the data from the csv file included in the bz2 archive. The data is a delimited file where fields are delimited with the "," character and missing values are coded as blank fields.
+
+```{r readdata,echo=TRUE}
+# Read in the data from the csv file
+stormData <- read.csv("StormData.csv", na.strings="")
+```
+
+After reading in the data, we check the first few rows (there are 902,297) rows in this dataset.
+
+```{r echo=TRUE}
+dim(stormData)
+```
+
+```{r echo=TRUE}
+head(stormData)
+```
+
+
+###
+
+## Results
+
+### Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+
+The two variables in the dataset that deal with population health are FATALITIES and INJURIES. 
+
+We start by claculating the average number of fatalities and injuries per event type and put them into the variables Fatalities.Avg and Injuries.Avg, respectively.
+
+We also introduce a new variable, Casualties.Avg, defined as Fatalities.Avg + Injuries.Avg.
+
+```{r avgfatalities,echo=TRUE}
+casualties <-
+    stormData %>% 
+    
+    # Group by the event tye
+    group_by(EVTYPE) %>% 
+    
+    # Calculate the average fatalities and injuries for each event type
+    summarize(
+        Fatalities.Avg=mean(FATALITIES,na.rm=TRUE), 
+        Injuries.Avg=mean(INJURIES, na.rm=TRUE)) %>% 
+    
+    # Add the column for casualties
+    mutate(Casualties.Avg = Fatalities.Avg + Injuries.Avg)
+
+dim(casualties)
+```
+
+We believe that the most harmful events will be measured primarily by the number of fatalities, and secondarily by the total number of casualties. Therefore, we present the top-10 for each measure, with ties broken first by the number of fatalities and then by the number of injuries.
+
+```{r orderedFatalities,echo=TRUE}
+# Show the top 10 most severe events, as measured first by fatalities and then by injuries
+head(arrange(casualties, desc(Fatalities.Avg), desc(Injuries.Avg)), n=10)
+```
+
+```{r orderedCasualties,echo=TRUE}
+# Show the top 10 most severe events, as measured first by casualties, and then by fatalities
+head(arrange(casualties, desc(Casualties.Avg), desc(Fatalities.Avg), desc(Injuries.Avg)), n=10)
+```
+
+
+2. Across the United States, which types of events have the greatest economic consequences?
+
+Placeholder
