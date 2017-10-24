@@ -10,7 +10,7 @@ Placeholder
 ## Data Processing
 
 We downloaded the U.S. National Oceanic and Atmospheric Administration's (NOAA) dataset for this assignment from the course link:
-[Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) (on 10/23/2017)
+[Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) (on 10/23/2017). We named the file "StormData.csv.bz2".
 
 The course also provided documentation on the dataset:
 * National Weather Service [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf)
@@ -18,55 +18,123 @@ The course also provided documentation on the dataset:
 
 ### Reading in the data
 
-We first read in the data from the csv file included in the bz2 archive. The data is a delimited file where fields are delimited with the "," character and missing values are coded as blank fields.
+We first read in the data from the csv file included in the bz2 archive. The data is a delimited file where fields are delimited with the "," character, quotes are enclosed in double quotes ", and missing values are coded as blank fields.
 
-```{r readdata,echo=TRUE}
+```{r}
+library(dplyr)
+```
+```{r readdata,cache=TRUE}
 # Read in the data from the csv file
-stormData <- read.csv("StormData.csv", na.strings="")
+stormData <- read.csv("StormData.csv.bz2", na.strings="", quote="\"")
 ```
 
 After reading in the data, we check the first few rows (there are 902,297) rows in this dataset.
 
 ```{r echo=TRUE}
 dim(stormData)
-```
-
-```{r echo=TRUE}
+names(stormData)
 head(stormData)
 ```
 
+### Processing the data
 
-###
+The two columns in the dataset that seem to deal with population health are FATALITIES and INJURIES. We define a new column, Casualties = FATALITIES + INJURIES, which we can use as a measure of the total human health impact of an event.
+
+```{r echo=TRUE}
+# Add the Casualties column
+stormData <- 
+    stormData %>%
+    mutate(Casualties = FATALITIES + INJURIES)
+```
+
+Next, the columns in the dataset that seem to deal with economic consequences are PROPDMG, PROPDMGEXP, CROPDMN, and CROPDMGEXP. We assume these correspond to property damage amount, property damage amount scale (thousands, millions, billions), crop damage amount, and crop damage amount scale (thousands, millions, billions), respectively.
+
+Inspecting PROPDMGEXP and CROPDMGEXP, we find that most records have values of K, M, or B, corresponding to thousands, millions, and billions, respectively.
+
+```{r echo=TRUE}
+stormData %>% group_by(PROPDMGEXP) %>% summarize(cnt=n())
+stormData %>% group_by(CROPDMGEXP) %>% summarize(cnt=n())
+```
+
+However, it appears that several records are miscoded with other values. We omit those in our analysis.
+
+We define new columns, PropertyDamage.Dollars and CropDamage.Dollars, corresponding to the actual dollar amount of property and crop damage, respectively.
+
+```{r echo=TRUE}
+# Add the damage dollar amount columns
+# Make sure to multiply by the proper multiplier depending on the scale
+stormData <-
+    stormData %>%
+    mutate(
+        PropertyDamage.Dollars = PROPDMG * 
+            ifelse(
+                as.character(PROPDMGEXP) == "K",
+                1000,
+                ifelse(
+                    as.character(PROPDMGEXP) == "M",
+                    1000000,
+                    ifelse(
+                        as.character(PROPDMGEXP) == "B",
+                        1000000,
+                        NA
+                    ))),
+        CropDamage.Dollars = CROPDMG *
+            ifelse(
+                as.character(CROPDMGEXP) == "K",
+                1000,
+                ifelse(
+                    as.character(CROPDMGEXP) == "M",
+                    1000000,
+                    ifelse(
+                        as.character(CROPDMGEXP) == "B",
+                        1000000000,
+                        NA
+                    ))))
+        
+```
+
+We then add a new column, TotalDamage.Dollars = PropertyDamage.Dollars + CropDamage.Dollars, which we use as a measure of the total economic consequences.
+
+```{r echo=TRUE}
+# Add the TotalDamage.Dollars column
+stormData <- 
+    stormData %>%
+    mutate(TotalDamage.Dollars = PropertyDamage.Dollars + CropDamage.Dollars)
+```
 
 ## Results
 
-### Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+### Entire U.S. analysis 
 
-The two variables in the dataset that deal with population health are FATALITIES and INJURIES. 
+#### 1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
 
-We start by claculating the average number of fatalities and injuries per event type and put them into the variables Fatalities.Avg and Injuries.Avg, respectively.
-
-We also introduce a new variable, Casualties.Avg, defined as Fatalities.Avg + Injuries.Avg.
+We start by calculating the mean and max number of fatalities, injuries, and casualties per event type across the entire U.S.
 
 ```{r avgfatalities,echo=TRUE}
+
 casualties <-
     stormData %>% 
     
-    # Group by the event tye
-    group_by(EVTYPE) %>% 
+    # Group by the event type
+    group_by(EVTYPE) %>%
     
-    # Calculate the average fatalities and injuries for each event type
+    filter(Casualties > 0) %>%
+    
+    # Calculate the mean values
     summarize(
-        Fatalities.Avg=mean(FATALITIES,na.rm=TRUE), 
-        Injuries.Avg=mean(INJURIES, na.rm=TRUE)) %>% 
-    
-    # Add the column for casualties
-    mutate(Casualties.Avg = Fatalities.Avg + Injuries.Avg)
+        Fatalities.Mean=mean(FATALITIES, na.rm=TRUE),
+        Fatalities.Max=max(FATALITIES, na.rm=TRUE),
+        Injuries.Mean=mean(INJURIES, na.rm=TRUE),
+        Injuries.Max=max(INJURIES, na.rm=TRUE),
+        Casualties.Mean=mean(Casualties, na.rm=TRUE),
+        Casualties.Max=max(Casualties, na.rm=TRUE))
 
 dim(casualties)
 ```
 
-We believe that the most harmful events will be measured primarily by the number of fatalities, and secondarily by the total number of casualties. Therefore, we present the top-10 for each measure, with ties broken first by the number of fatalities and then by the number of injuries.
+We believe that the most harmful events should be measured primarily by the number of fatalities, and secondarily by the total number of casualties. 
+
+Therefore, we present the top-10 events in terms of Fatalities for each measure, with ties broken first by the number of fatalities and then by the number of injuries.
 
 ```{r orderedFatalities,echo=TRUE}
 # Show the top 10 most severe events, as measured first by fatalities and then by injuries
@@ -78,7 +146,42 @@ head(arrange(casualties, desc(Fatalities.Avg), desc(Injuries.Avg)), n=10)
 head(arrange(casualties, desc(Casualties.Avg), desc(Fatalities.Avg), desc(Injuries.Avg)), n=10)
 ```
 
+#### 2. Across the United States, which types of events have the greatest economic consequences?
 
-2. Across the United States, which types of events have the greatest economic consequences?
+
+
+
+
+Next, we calculate the average, median, and max damage in dollars, grouped by event type.
+
+```{r echo=TRUE}
+economicConsequences <-
+    stormData %>% 
+    
+    # Group by the event ty]e
+    group_by(EVTYPE) %>%
+    
+    # Calculate the average, median, and max values
+    summarize(
+        TotalDamage.Dollars.Avg=mean(TotalDamage.Dollars, na.rm=TRUE),
+        TotalDamage.Dollars.Median=median(TotalDamage.Dollars, na.rm=TRUE),
+        TotalDamage.Dollars.Max=max(TotalDamage.Dollars, na.rm=TRUE))
+
+dim(economicConsequences)
+```
+
+We present the top-10 events in terms of total damage in dollars.
+
+```{r echo=TRUE}
+# Show the top 10 most severe events, as measured by total damage in dollars
+head(arrange(economicConsequences, desc(TotalDamage.Dollars.Avg)), n=10)
+```
+
+### Entire U.S. analysis
+
+We end by showing our session info.
+```{r echo=TRUE}
+sessionInfo()
+```
 
 Placeholder
