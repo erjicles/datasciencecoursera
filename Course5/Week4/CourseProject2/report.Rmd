@@ -251,12 +251,12 @@ eventTypesByTotalDamageDollarsMean$EVTYPE <- factor(eventTypesByTotalDamageDolla
 
 # Create a plot of events, ranked by mean total dollar cost
 plotByTotalDamageDollarsMean <- 
-    ggplot(data = eventTypesByTotalDamageDollarsMean, mapping = aes(x = EVTYPE, y = TotalDamage.Dollars.Mean, fill = EVTYPE)) +
+    ggplot(data = eventTypesByTotalDamageDollarsMean, mapping = aes(x = EVTYPE, y = log(TotalDamage.Dollars.Mean), fill = EVTYPE)) +
     geom_col() +
     coord_flip() + 
     scale_x_discrete(limits=rev(levels(eventTypesByTotalDamageDollarsMean$EVTYPE))) +
     geom_text(
-        aes(x = EVTYPE, y = TotalDamage.Dollars.Mean / 2, hjust=0, vjust=0.5,
+        aes(x = EVTYPE, y = log(TotalDamage.Dollars.Mean) / 2, hjust=0, vjust=0.5,
             label = 
                 paste(
                     as.character(round(TotalDamage.Dollars.Mean, digits=0)), 
@@ -265,14 +265,15 @@ plotByTotalDamageDollarsMean <-
             )
         ) + 
     theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
-    labs(x = "Event Type", y = "Mean Total Cost [dollars]", title="Mean Total Cost by Event Type")
+    labs(x = "Event Type", y = "Log(Mean Total Cost [dollars])", title="Mean Total Cost by Event Type")
 
 # Plot the total cost rankings
 plotByTotalDamageDollarsMean
 ```
 
+We clearly see that hurricanes, storm surge, and floods are by far the most damaging in terms of damage in dollars.
 
-
+### Session info
 We end by showing our session info.
 ```{r echo=TRUE}
 sessionInfo()
