@@ -20,17 +20,21 @@ The course also provided documentation on the dataset:
 
 We first read in the data from the csv file included in the bz2 archive. The data is a delimited file where fields are delimited with the "," character, quotes are enclosed in double quotes ", and missing values are coded as blank fields.
 
-```{r}
+```{r loadPackages,echo=TRUE}
 library(dplyr)
+library(ggplot2)
+library(gridExtra)
+library(RColorBrewer)
 ```
-```{r readdata,cache=TRUE}
+
+```{r readData,echo=TRUE,cache=TRUE}
 # Read in the data from the csv file
 stormData <- read.csv("StormData.csv.bz2", na.strings="", quote="\"")
 ```
 
 After reading in the data, we check the first few rows (there are 902,297) rows in this dataset.
 
-```{r echo=TRUE}
+```{r showDataSummary,echo=TRUE}
 dim(stormData)
 names(stormData)
 head(stormData)
@@ -40,7 +44,7 @@ head(stormData)
 
 The two columns in the dataset that seem to deal with population health are FATALITIES and INJURIES. We define a new column, Casualties = FATALITIES + INJURIES, which we can use as a measure of the total human health impact of an event.
 
-```{r echo=TRUE}
+```{r addCasualtiesColumn,echo=TRUE}
 # Add the Casualties column
 stormData <- 
     stormData %>%
@@ -49,139 +53,227 @@ stormData <-
 
 Next, the columns in the dataset that seem to deal with economic consequences are PROPDMG, PROPDMGEXP, CROPDMN, and CROPDMGEXP. We assume these correspond to property damage amount, property damage amount scale (thousands, millions, billions), crop damage amount, and crop damage amount scale (thousands, millions, billions), respectively.
 
-Inspecting PROPDMGEXP and CROPDMGEXP, we find that most records have values of K, M, or B, corresponding to thousands, millions, and billions, respectively.
+Inspecting PROPDMGEXP and CROPDMGEXP, we find that most non-empty records have values of K, M, or B, corresponding to thousands, millions, and billions, respectively.
 
-```{r echo=TRUE}
-stormData %>% group_by(PROPDMGEXP) %>% summarize(cnt=n())
-stormData %>% group_by(CROPDMGEXP) %>% summarize(cnt=n())
+```{r summarizeDamageAmountScales,echo=TRUE}
+stormData %>% group_by(PROPDMGEXP) %>% summarize(N=n())
+stormData %>% group_by(CROPDMGEXP) %>% summarize(N=n())
 ```
 
-However, it appears that several records are miscoded with other values. We omit those in our analysis.
+However, it appears that several records are miscoded with other values (or at least, the interpretation of those values is uncertain). We omit those in our analysis.
 
 We define new columns, PropertyDamage.Dollars and CropDamage.Dollars, corresponding to the actual dollar amount of property and crop damage, respectively.
 
-```{r echo=TRUE}
+```{r addDamageDollars,echo=TRUE}
+# Define a function to calculate the total dollar amount
+# given the amount value and the scale factor (K, M, B)
+calculateDamageDollarAmount <- function(amount, scale) {
+    
+    # Convert the scale factor to a character
+    scaleValue <- as.character(scale)
+    
+    # Return the amount, multiplying by the proper scale multiplier
+    amount *
+        ifelse(scaleValue == "K", 10^3,
+            ifelse(scaleValue == "M", 10^6,
+                ifelse(scaleValue == "B", 10^9, NA)
+            )
+        )
+}
+
 # Add the damage dollar amount columns
 # Make sure to multiply by the proper multiplier depending on the scale
 stormData <-
     stormData %>%
     mutate(
-        PropertyDamage.Dollars = PROPDMG * 
-            ifelse(
-                as.character(PROPDMGEXP) == "K",
-                1000,
-                ifelse(
-                    as.character(PROPDMGEXP) == "M",
-                    1000000,
-                    ifelse(
-                        as.character(PROPDMGEXP) == "B",
-                        1000000,
-                        NA
-                    ))),
-        CropDamage.Dollars = CROPDMG *
-            ifelse(
-                as.character(CROPDMGEXP) == "K",
-                1000,
-                ifelse(
-                    as.character(CROPDMGEXP) == "M",
-                    1000000,
-                    ifelse(
-                        as.character(CROPDMGEXP) == "B",
-                        1000000000,
-                        NA
-                    ))))
+        PropertyDamage.Dollars = calculateDamageDollarAmount(PROPDMG, PROPDMGEXP),
+        CropDamage.Dollars = calculateDamageDollarAmount(CROPDMG, CROPDMGEXP))
         
 ```
 
 We then add a new column, TotalDamage.Dollars = PropertyDamage.Dollars + CropDamage.Dollars, which we use as a measure of the total economic consequences.
 
-```{r echo=TRUE}
+```{r addTotalDamageDollars,echo=TRUE}
+# Define a function to calculate total damage in dollars
+calculateTotalDamageDollars <- function (propertyDamageDollars, cropDamageDollars) {
+    ifelse(
+        is.na(propertyDamageDollars), 
+        ifelse(
+            is.na(cropDamageDollars), 
+            NA,
+            cropDamageDollars),
+        propertyDamageDollars +
+            ifelse(
+                is.na(cropDamageDollars),
+                0,
+                cropDamageDollars
+            ))
+}
+
 # Add the TotalDamage.Dollars column
 stormData <- 
     stormData %>%
-    mutate(TotalDamage.Dollars = PropertyDamage.Dollars + CropDamage.Dollars)
+    mutate(TotalDamage.Dollars = calculateTotalDamageDollars(PropertyDamage.Dollars, CropDamage.Dollars))
+```
+
+Since we're interested in answering questions across the U.S. about event types, we group the data on the EVTYPE column and then calculate summary data for each event type. We calculate the mean for FATALITIES, Casualties, and TotalDamage.Dollars, in order to give an idea of how bad each event type is on average.
+
+```{r summarizedStormData,echo=TRUE}
+# Group the storm data by the EVTYPE column
+summarizedStormData <-
+    stormData %>%
+    
+    # Group by the event type
+    group_by(EVTYPE) %>%
+
+    # Calculate the mean and max values
+    summarize(
+        N = n(),
+        Fatalities.Mean = mean(FATALITIES, na.rm=TRUE),
+        Casualties.Mean = mean(Casualties, na.rm=TRUE),
+        TotalDamage.Dollars.Mean = mean(TotalDamage.Dollars, na.rm=TRUE))
+dim(summarizedStormData)
+```
+
+Inspecting the summarized data, we find that many coded event types only appear once or a handful of times.
+```{r showEventTypeFrequency,echo=TRUE}
+nrow(summarizedStormData[summarizedStormData$N == 1,])
+nrow(summarizedStormData[summarizedStormData$N < 5,])
+```
+
+On the other hand, we're interested in events that happen with some frequency, so we keep only events that have occurred at least 15 times in the data set.
+
+```{r keepFrequentEvents,echo=TRUE}
+minOccurrences <- 15
+filteredSummarizedStormData <- filter(summarizedStormData, N >= minOccurrences)
+dim(summarizedStormData)
 ```
 
 ## Results
 
-### Entire U.S. analysis 
+### 1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
 
-#### 1. Across the United States, which types of events (as indicated in the EVTYPE variable) are most harmful with respect to population health?
+In order to show which types of events are most harmful with respect to population health, we plot the top-20 event types ranked in order of most fatalities and most casualties.
 
-We start by calculating the mean and max number of fatalities, injuries, and casualties per event type across the entire U.S.
+While the fatality ranking gives an idea of the deadliest events, the casualty ranking gives an idea of how many people can be impacted by an event.
 
-```{r avgfatalities,echo=TRUE}
+Events with low ranks for both fatalities and casualties would be considered the most impactful.
 
-casualties <-
-    stormData %>% 
-    
-    # Group by the event type
-    group_by(EVTYPE) %>%
-    
-    filter(Casualties > 0) %>%
-    
-    # Calculate the mean values
-    summarize(
-        Fatalities.Mean=mean(FATALITIES, na.rm=TRUE),
-        Fatalities.Max=max(FATALITIES, na.rm=TRUE),
-        Injuries.Mean=mean(INJURIES, na.rm=TRUE),
-        Injuries.Max=max(INJURIES, na.rm=TRUE),
-        Casualties.Mean=mean(Casualties, na.rm=TRUE),
-        Casualties.Max=max(Casualties, na.rm=TRUE))
+```{r plotHealthImpact,fig.width=10,echo=TRUE}
+# Define the number of event types to plot
+numberToPlot <- 20
 
-dim(casualties)
+# Select the top 20 events, arranged by our various metrics
+eventTypesByFatalitiesMean <- 
+    head(arrange(filteredSummarizedStormData, desc(Fatalities.Mean), desc(Casualties.Mean)), n = numberToPlot)
+eventTypesByCasualtiesMean <-
+    head(arrange(filteredSummarizedStormData, desc(Casualties.Mean), desc(Fatalities.Mean)), n = numberToPlot)
+
+# Sort them by their rank
+eventTypesByFatalitiesMean$EVTYPE <- factor(eventTypesByFatalitiesMean$EVTYPE, levels = eventTypesByFatalitiesMean$EVTYPE)
+eventTypesByCasualtiesMean$EVTYPE <- factor(eventTypesByCasualtiesMean$EVTYPE, levels = eventTypesByCasualtiesMean$EVTYPE)
+
+# Create the colors to use for each event type
+# Get the unique events in our sorted lists
+uniqueEventTypes <- unique(c(as.character(eventTypesByFatalitiesMean$EVTYPE), as.character(eventTypesByCasualtiesMean$EVTYPE)))
+# Select random colors for these events
+set.seed(1235)
+eventTypeColors <- sample(colorRampPalette(brewer.pal(5, "Set1"))(length(uniqueEventTypes)))
+# Associate the event names with the colors
+names(eventTypeColors) <- factor(uniqueEventTypes)
+# Create a manual fill using these colors
+eventTypeColorScale <- scale_fill_manual(name = "EVTYPE", values = eventTypeColors)
+
+# Create a plot of events, ranked by fatalities
+plotByFatalitiesMean <- 
+    ggplot(data = eventTypesByFatalitiesMean, mapping = aes(x = EVTYPE, y = Fatalities.Mean, fill = EVTYPE)) +
+    geom_col() +
+    coord_flip() + 
+    scale_x_discrete(limits=rev(levels(eventTypesByFatalitiesMean$EVTYPE))) +
+    geom_text(
+        aes(x = EVTYPE, y = Fatalities.Mean / 2, hjust=0, vjust=0.5,
+            label = 
+                paste(
+                    as.character(round(Fatalities.Mean, digits=2)), 
+                    paste("(N=", as.character(N), ")", sep="")
+                )
+            )
+        ) + 
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+    eventTypeColorScale +
+    labs(x = "Event Type", y = "Fatalities (mean)")
+
+# Create a plot of events, ranked by casualties
+plotByCasualtiesMean <- 
+    ggplot(data = eventTypesByCasualtiesMean, mapping = aes(x = EVTYPE, y = Casualties.Mean, fill = EVTYPE)) +
+    geom_col() +
+    coord_flip() + 
+    scale_x_discrete(limits=rev(levels(eventTypesByCasualtiesMean$EVTYPE))) +
+    geom_text(
+        aes(x = EVTYPE, y = Casualties.Mean / 2, hjust=0, vjust=0.5,
+            label = 
+                paste(
+                    as.character(round(Casualties.Mean, digits=2)), 
+                    paste("(N=", as.character(N), ")", sep="")
+                )
+            )
+        ) + 
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+    eventTypeColorScale +
+    labs(x = "Event Type", y = "Casualties (mean)")
+
+# Plot the fatality and casualty rankings
+grid.arrange(plotByFatalitiesMean, plotByCasualtiesMean, ncol=2, nrow=1, name = "Mean Fatalities and Casualties by Event Type")
 ```
 
-We believe that the most harmful events should be measured primarily by the number of fatalities, and secondarily by the total number of casualties. 
+We see that four events relating to heat rank in the top 10 on both rankings: EXTREME HEAT, HEAT WAVE, HEAT, and EXCESSIVE HEAT. EXTREME HEAT ranks both #1 in fatalities and #2 in casualties.
 
-Therefore, we present the top-10 events in terms of Fatalities for each measure, with ties broken first by the number of fatalities and then by the number of injuries.
+Additionally, 2 events involving water also rank in the top 10 on both rankings: TSUNAMI (#3 on both), and RIP CURRENTS.
 
-```{r orderedFatalities,echo=TRUE}
-# Show the top 10 most severe events, as measured first by fatalities and then by injuries
-head(arrange(casualties, desc(Fatalities.Avg), desc(Injuries.Avg)), n=10)
+HURRICANE/TYPHOON also makes an appearance in the top 10 in both rankings, and shows as #1 in casualties.
+
+Given the high frequency of heat events (N=22, 74, 767, 1678 for EXTREME HEAT, HEAT WAVE, HEAT, and EXCESSIVE HEAT, respectively), relative to other high impact events such as TSUNAMI (N=20), HURRICANE/TYPHOON (N=88), and RIP CURRENTS (N=304), we conclude that heat events have the largest impact on population health, especially EXTREME HEAT due to its high rate of fatalities and EXCESSIVE HEAT due to its high frequency.
+
+### 2. Across the United States, which types of events have the greatest economic consequences?
+
+In order to show which types of events have the greatest economic consequences, we plot the top-20 event types ranked in order of largest total cost in dollars.
+
+```{r plotEconomicImpact,fig.width=10,echo=TRUE}
+# Define the number of event types to plot
+numberToPlot <- 20
+
+# Select the top 20 events, arranged by our various metrics
+eventTypesByTotalCostMean <- 
+    head(arrange(filteredSummarizedStormData, desc(TotalCost.Dollars.Mean)), n = numberToPlot)
+
+# Sort them by their rank
+eventTypesByTotalCostMean$EVTYPE <- factor(eventTypesByTotalCostMean$EVTYPE, levels = eventTypesByTotalCost$EVTYPE)
+
+# Create a plot of events, ranked by mean total dollar cost
+plotByTotalCostMean <- 
+    ggplot(data = eventTypesByTotalCostMean, mapping = aes(x = EVTYPE, y = TotalCost.Dollars.Mean, fill = EVTYPE)) +
+    geom_col() +
+    coord_flip() + 
+    scale_x_discrete(limits=rev(levels(eventTypesByTotalCostMean$EVTYPE))) +
+    geom_text(
+        aes(x = EVTYPE, y = TotalCost.Dollars.Mean / 2, hjust=0, vjust=0.5,
+            label = 
+                paste(
+                    as.character(round(TotalCost.Dollars.Mean, digits=0)), 
+                    paste("(N=", as.character(N), ")", sep="")
+                )
+            )
+        ) + 
+    theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
+    labs(x = "Event Type", y = "Mean Total Cost [dollars]", title="Mean Total Cost by Event Type")
+
+# Plot the total cost rankings
+plotByTotalCostMean
 ```
 
-```{r orderedCasualties,echo=TRUE}
-# Show the top 10 most severe events, as measured first by casualties, and then by fatalities
-head(arrange(casualties, desc(Casualties.Avg), desc(Fatalities.Avg), desc(Injuries.Avg)), n=10)
-```
 
-#### 2. Across the United States, which types of events have the greatest economic consequences?
-
-
-
-
-
-Next, we calculate the average, median, and max damage in dollars, grouped by event type.
-
-```{r echo=TRUE}
-economicConsequences <-
-    stormData %>% 
-    
-    # Group by the event ty]e
-    group_by(EVTYPE) %>%
-    
-    # Calculate the average, median, and max values
-    summarize(
-        TotalDamage.Dollars.Avg=mean(TotalDamage.Dollars, na.rm=TRUE),
-        TotalDamage.Dollars.Median=median(TotalDamage.Dollars, na.rm=TRUE),
-        TotalDamage.Dollars.Max=max(TotalDamage.Dollars, na.rm=TRUE))
-
-dim(economicConsequences)
-```
-
-We present the top-10 events in terms of total damage in dollars.
-
-```{r echo=TRUE}
-# Show the top 10 most severe events, as measured by total damage in dollars
-head(arrange(economicConsequences, desc(TotalDamage.Dollars.Avg)), n=10)
-```
-
-### Entire U.S. analysis
 
 We end by showing our session info.
 ```{r echo=TRUE}
 sessionInfo()
 ```
-
-Placeholder
