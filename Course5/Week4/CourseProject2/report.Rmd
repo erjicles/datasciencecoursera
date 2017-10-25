@@ -243,23 +243,23 @@ In order to show which types of events have the greatest economic consequences, 
 numberToPlot <- 20
 
 # Select the top 20 events, arranged by our various metrics
-eventTypesByTotalCostMean <- 
-    head(arrange(filteredSummarizedStormData, desc(TotalCost.Dollars.Mean)), n = numberToPlot)
+eventTypesByTotalDamageDollarsMean <- 
+    head(arrange(filteredSummarizedStormData, desc(TotalDamage.Dollars.Mean)), n = numberToPlot)
 
 # Sort them by their rank
-eventTypesByTotalCostMean$EVTYPE <- factor(eventTypesByTotalCostMean$EVTYPE, levels = eventTypesByTotalCost$EVTYPE)
+eventTypesByTotalDamageDollarsMean$EVTYPE <- factor(eventTypesByTotalDamageDollarsMean$EVTYPE, levels = eventTypesByTotalDamageDollarsMean$EVTYPE)
 
 # Create a plot of events, ranked by mean total dollar cost
-plotByTotalCostMean <- 
-    ggplot(data = eventTypesByTotalCostMean, mapping = aes(x = EVTYPE, y = TotalCost.Dollars.Mean, fill = EVTYPE)) +
+plotByTotalDamageDollarsMean <- 
+    ggplot(data = eventTypesByTotalDamageDollarsMean, mapping = aes(x = EVTYPE, y = TotalDamage.Dollars.Mean, fill = EVTYPE)) +
     geom_col() +
     coord_flip() + 
-    scale_x_discrete(limits=rev(levels(eventTypesByTotalCostMean$EVTYPE))) +
+    scale_x_discrete(limits=rev(levels(eventTypesByTotalDamageDollarsMean$EVTYPE))) +
     geom_text(
-        aes(x = EVTYPE, y = TotalCost.Dollars.Mean / 2, hjust=0, vjust=0.5,
+        aes(x = EVTYPE, y = TotalDamage.Dollars.Mean / 2, hjust=0, vjust=0.5,
             label = 
                 paste(
-                    as.character(round(TotalCost.Dollars.Mean, digits=0)), 
+                    as.character(round(TotalDamage.Dollars.Mean, digits=0)), 
                     paste("(N=", as.character(N), ")", sep="")
                 )
             )
@@ -268,7 +268,7 @@ plotByTotalCostMean <-
     labs(x = "Event Type", y = "Mean Total Cost [dollars]", title="Mean Total Cost by Event Type")
 
 # Plot the total cost rankings
-plotByTotalCostMean
+plotByTotalDamageDollarsMean
 ```
 
 
