@@ -1,11 +1,11 @@
 ---
-title: "Placeholder"
+title: "Extreme Heat and Hurricane Weather Events Pose Highest Health and Economic Risk"
 output: html_document
 ---
 
 ## Synopsis
 
-Placeholder
+In this report, we aim to describe the types of weather events with the greatest impact, both in terms of population health (injuries and fatalities), and in terms of economic consequences (total damage in dollars). Our overall hypothesis is that heat waves cause the most harm to population health, while hurricanes result in the most damage in dollars. To investigate this hypothesis, we used the U.S. National Oceanic and Atmospheric Administration's (NOAA) storm database in our analysis, covering numerous weather events from 1950 through 2011. From these data, we found that, indeed, extreme heat events pose the highest mortality risk (4.36 fatalities on average, N=22), while hurricanes pose the highest economic risk in terms of damage ($1.027 billion on average, N=88).
 
 ## Data Processing
 
@@ -159,7 +159,7 @@ While the fatality ranking gives an idea of the deadliest events, the casualty r
 
 Events with low ranks for both fatalities and casualties would be considered the most impactful.
 
-```{r plotHealthImpact,fig.width=10,echo=TRUE}
+```{r plotHealthImpact,fig.width=10,fig.height=6,echo=TRUE}
 # Define the number of event types to plot
 numberToPlot <- 20
 
@@ -182,7 +182,7 @@ eventTypeColors <- sample(colorRampPalette(brewer.pal(5, "Set1"))(length(uniqueE
 # Associate the event names with the colors
 names(eventTypeColors) <- factor(uniqueEventTypes)
 # Create a manual fill using these colors
-eventTypeColorScale <- scale_fill_manual(name = "EVTYPE", values = eventTypeColors)
+eventTypeColorScale <- scale_fill_manual(name = "Event Type", values = eventTypeColors)
 
 # Create a plot of events, ranked by fatalities
 plotByFatalitiesMean <- 
@@ -201,7 +201,7 @@ plotByFatalitiesMean <-
         ) + 
     theme(axis.text.y = element_blank(), axis.ticks.y = element_blank()) +
     eventTypeColorScale +
-    labs(x = "Event Type", y = "Fatalities (mean)")
+    labs(x = "Event Type", y = "Fatalities (mean)", fill = "Event Type")
 
 # Create a plot of events, ranked by casualties
 plotByCasualtiesMean <- 
@@ -223,7 +223,7 @@ plotByCasualtiesMean <-
     labs(x = "Event Type", y = "Casualties (mean)")
 
 # Plot the fatality and casualty rankings
-grid.arrange(plotByFatalitiesMean, plotByCasualtiesMean, ncol=2, nrow=1, name = "Mean Fatalities and Casualties by Event Type")
+grid.arrange(plotByFatalitiesMean, plotByCasualtiesMean, ncol=2, nrow=1, top = "Mean Fatalities and Casualties by Event Type")
 ```
 
 We see that four events relating to heat rank in the top 10 on both rankings: EXTREME HEAT, HEAT WAVE, HEAT, and EXCESSIVE HEAT. EXTREME HEAT ranks both #1 in fatalities and #2 in casualties.
@@ -236,9 +236,11 @@ Given the high frequency of heat events (N=22, 74, 767, 1678 for EXTREME HEAT, H
 
 ### 2. Across the United States, which types of events have the greatest economic consequences?
 
-In order to show which types of events have the greatest economic consequences, we plot the top-20 event types ranked in order of largest total cost in dollars.
+In order to show which types of events have the greatest economic consequences, we plot the top-20 event types ranked in order of highest total cost in dollars.
 
-```{r plotEconomicImpact,fig.width=10,echo=TRUE}
+We plot the log of the cost to reduce the separation of the values in the plot.
+
+```{r plotEconomicImpact,fig.height=6,echo=TRUE}
 # Define the number of event types to plot
 numberToPlot <- 20
 
@@ -251,15 +253,15 @@ eventTypesByTotalDamageDollarsMean$EVTYPE <- factor(eventTypesByTotalDamageDolla
 
 # Create a plot of events, ranked by mean total dollar cost
 plotByTotalDamageDollarsMean <- 
-    ggplot(data = eventTypesByTotalDamageDollarsMean, mapping = aes(x = EVTYPE, y = log(TotalDamage.Dollars.Mean), fill = EVTYPE)) +
+    ggplot(data = eventTypesByTotalDamageDollarsMean, mapping = aes(x = EVTYPE, y = log(TotalDamage.Dollars.Mean, base = 10), fill = EVTYPE)) +
     geom_col() +
     coord_flip() + 
     scale_x_discrete(limits=rev(levels(eventTypesByTotalDamageDollarsMean$EVTYPE))) +
     geom_text(
-        aes(x = EVTYPE, y = log(TotalDamage.Dollars.Mean) / 2, hjust=0, vjust=0.5,
+        aes(x = EVTYPE, y = log(TotalDamage.Dollars.Mean, base = 10) / 2, hjust=0, vjust=0.5,
             label = 
                 paste(
-                    as.character(round(TotalDamage.Dollars.Mean, digits=0)), 
+                    format(TotalDamage.Dollars.Mean, big.mark = ",", scientific = TRUE, digits = 4), 
                     paste("(N=", as.character(N), ")", sep="")
                 )
             )
