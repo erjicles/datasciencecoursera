@@ -13,6 +13,7 @@ We downloaded the U.S. National Oceanic and Atmospheric Administration's (NOAA) 
 [Storm Data](https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2) (on 10/23/2017). We named the file "StormData.csv.bz2".
 
 The course also provided documentation on the dataset:
+
 * National Weather Service [Storm Data Documentation](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2Fpd01016005curr.pdf)
 * National Climatic Data Center Storm Events [FAQ](https://d396qusza40orc.cloudfront.net/repdata%2Fpeer2_doc%2FNCDC%20Storm%20Events-FAQ%20Page.pdf)
 
@@ -139,6 +140,8 @@ Inspecting the summarized data, we find that many coded event types only appear 
 ```{r showEventTypeFrequency,echo=TRUE}
 nrow(summarizedStormData[summarizedStormData$N == 1,])
 nrow(summarizedStormData[summarizedStormData$N < 5,])
+nrow(summarizedStormData[summarizedStormData$N < 10,])
+nrow(summarizedStormData[summarizedStormData$N < 15,])
 ```
 
 On the other hand, we're interested in events that happen with some frequency, so we keep only events that have occurred at least 15 times in the data set.
@@ -146,7 +149,7 @@ On the other hand, we're interested in events that happen with some frequency, s
 ```{r keepFrequentEvents,echo=TRUE}
 minOccurrences <- 15
 filteredSummarizedStormData <- filter(summarizedStormData, N >= minOccurrences)
-dim(summarizedStormData)
+dim(filteredSummarizedStormData)
 ```
 
 ## Results
