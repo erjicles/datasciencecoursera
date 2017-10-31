@@ -1,8 +1,10 @@
 ---
-title: "Part 1: Simulation Exercise"
+title: 'Part 1: Simulation Exercise'
 author: "Erik Johnson"
 date: "10/30/2017"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -18,11 +20,11 @@ We define a simulation as drawing 40 random variables from the exponential distr
 
 We start by running 1000 such simulations and storing the resultant random variables in a matrix called sims.
 
-```{r message=FALSE,echo=TRUE}
+```{r Load Data,message=FALSE}
 library(ggplot2)
 ```
 
-```{r echo=TRUE}
+```{r Run Simulations}
 # Set the random seed so that the results can be exactly reproduced
 set.seed(1234) 
 
@@ -43,7 +45,7 @@ sims <-
 
 Next, we calculate the means and standard deviations of each simulation.
 
-```{r echo=TRUE}
+```{r Summarize Simulations}
 # Calculate the average of each simulation (each column represents a single
 # simulation)
 simMeans <- vapply(1:numberOfSims, function(i) mean(sims[,i]), FUN.VALUE = numeric(1))
@@ -56,7 +58,7 @@ simSigmas <- vapply(1:numberOfSims, function(i) sd(sims[,i]), FUN.VALUE = numeri
 
 We compare the sample mean vs the theoretical mean in two ways. First, we demonstrate that the sample means are tightly clustered around the theoretical mean. Second, we show that the difference between the mean of the means and the theoretical mean is very small.
 
-```{r echo=TRUE}
+```{r Sample Mean vs Theoretical Mean}
 # Calculate the theoretical mean
 theoreticalMean <- 1 / lambda
 
@@ -79,7 +81,7 @@ mean(simMeans) - theoreticalMean
 
 We compare the sample variance vs the theoretical variance in two ways. First, we demonstrate that the sample variances are tightly clustered around the theoretical variance. Second, we show that the difference between the mean of the variances and the theoretical variance is very small.
 
-```{r echo=TRUE}
+```{r Sample Variance vs Theoretical Variance}
 # Calculate the theoretical variance
 theoreticalSD <- 1 / lambda
 theoreticalVariance <- theoreticalSD^2
@@ -106,7 +108,7 @@ First, we display a histogram of the raw simulation data to show that the expone
 
 Second, we show that the distribution of the sample means *is* approximately normal by plotting their density overlayed by the standard normal distribution. Since the two densities are very similar, we can conclude that the distribution is approx. normal.
 
-```{r echo=TRUE}
+```{r Histogram of Raw Simulation Data}
 # Show a histogram of the raw simulation data
 # This should demonstrate that the exponential distribution is itself not normal
 hist(
@@ -115,7 +117,9 @@ hist(
     xlab="Random Exp. Value",
     ylab="Frequency",
     main="Distribution of Simulation Data")
+```
 
+```{r Density of Simulation Averages}
 # Function to transform the sample mean to its CLT statistic
 # It does so by first subtracting the theoretical mean from the sample mean, and then
 # divides by the standard error

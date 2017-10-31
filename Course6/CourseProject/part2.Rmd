@@ -1,8 +1,10 @@
 ---
-title: "part2"
+title: 'Part 2: Basic Inferential Data Analysis'
 author: "Erik Johnson"
 date: "10/30/2017"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -10,8 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Overview
-Now in the second portion of the project, we're going to analyze the ToothGrowth data in the R datasets package.
+In this report, we analyze the ToothGrowth data in the R datasets package. We show that there is a statistically significant difference in tooth growth between the supplements OJ and VC at the 0.5 and 1.0 dose levels, but there is no significant difference between the supplements at the 2.0 dose level or when compared irrespective of dose.
+
 ## Load the data
+We start by loading the ToothGrowth data from the R datasets package and displaying some basic summary information about the dataset.
 
 ```{r message=FALSE,echo=TRUE}
 library(dplyr)
@@ -24,20 +28,29 @@ data("ToothGrowth")
 str(ToothGrowth)
 ```
 
-## Exploratory data analysis
+We see that the dataset has 3 variables: len (numeric), supp (factor), and dose (numeric).
 
-1. Load the ToothGrowth data and perform some basic exploratory data analyses
+## Exploratory data analysis
+We start our analysis by showing the unique supplement and dose values.
 
 ```{r echo=TRUE}
 unique(ToothGrowth$supp)
 unique(ToothGrowth$dose)
 ```
 
+To compare tooth growth by supp and dose, we first group the data by supp and then by dose, and then take the mean tooth growth for each grouping.
+
 ```{r echo=TRUE}
 summarizedToothGrowth <-
     ToothGrowth %>%
     group_by(supp, dose) %>% 
     summarize(len.mean = mean(len))
+head(summarizedToothGrowth)
+```
+
+Next, we plot the tooth growth on the y-axis versus dose level, with the bar colors representing the supplement.
+
+```{r toothGrowthSummary,echo=TRUE}
 
 g <- ggplot(summarizedToothGrowth, aes(x = dose, y = len.mean, fill = supp)) + 
     geom_col(position = "dodge") +
@@ -50,11 +63,14 @@ g <- ggplot(summarizedToothGrowth, aes(x = dose, y = len.mean, fill = supp)) +
 print(g)
 ```
 
-2. Provide a basic summary of the data.
+We see that OJ appears to result in higher tooth growth than VC at the 0.5 and 1.0 dose levels. However, at the 2.0 dose level, OJ and VC appear to result in similar tooth growth. In the next section, we explore if these differences are statistically significant.
 
 ## Confidence intervals and hypothesis tests
-3. Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering)
+We want to know if the difference in tooth growth that we observed between VC and OJ is significant.
 
+Our null hypothesis is that there is no difference in average tooth growth between VC and OJ at any dose level. Our alternate hypothesis is that average tooth growth is different between OJ and VC. We test this at each dose level, as well as irrespective of dose.
+
+To start, we retrieve the growth length data for each supplement at each dose level, as well as irrespective of dose.
 ```{r echo=TRUE}
 len_OJ_05 <- ToothGrowth$len[ToothGrowth$supp == "OJ" & ToothGrowth$dose == 0.5]
 len_OJ_10 <- ToothGrowth$len[ToothGrowth$supp == "OJ" & ToothGrowth$dose == 1.0]
@@ -64,7 +80,10 @@ len_VC_10 <- ToothGrowth$len[ToothGrowth$supp == "VC" & ToothGrowth$dose == 1.0]
 len_VC_20 <- ToothGrowth$len[ToothGrowth$supp == "VC" & ToothGrowth$dose == 2.0]
 len_OJ <- ToothGrowth$len[ToothGrowth$supp == "OJ"]
 len_VC <- ToothGrowth$len[ToothGrowth$supp == "VC"]
+```
 
+Next, we perform unpaired two-sided t-tests between the OJ and VC tooth growth data at each dose level as well as irrespective of dose.
+```{r echo=TRUE}
 t.test(len_OJ_05, len_VC_05)
 t.test(len_OJ_10, len_VC_10)
 t.test(len_OJ_20, len_VC_20)
@@ -72,4 +91,6 @@ t.test(len_OJ, len_VC)
 ```
 
 ## Conclusion
-4. State your conclusions and the assumptions needed for your conclusions.
+We find that average tooth growth for OJ is different than that for VC at the 0.5 and 1.0 dose levels (p = 0.006, 0.001, respectively). This means that the observed difference is likely significant. However, at the 2.0 level, we can't reject the null hypothesis as p=0.96. We also can't reject the null when we compare OJ and VC irrespective of dose, as p = 0.06.
+
+Our alternate hypothesis assumes that OJ and VC result in different tooth growth, but we don't make an assumption as to which results in more or less (therefore we use a two-sided t-test). We assume that the tooth growth means are normally distributed, and we set alpha = 0.05 so that we only reject the null hypothesis for p <= 0.05. We also assume that the variances are unequal since we're comparing different supplements, and that the test subjects across groups are unrelated so we use unpaired t-tests.
