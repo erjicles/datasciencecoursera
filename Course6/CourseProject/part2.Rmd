@@ -10,8 +10,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Overview
-
+Now in the second portion of the project, we're going to analyze the ToothGrowth data in the R datasets package.
 ## Load the data
+
+```{r message=FALSE,echo=TRUE}
+library(dplyr)
+library(ggplot2)
+```
 
 ```{r echo=TRUE}
 data("ToothGrowth")
@@ -21,12 +26,50 @@ str(ToothGrowth)
 
 ## Exploratory data analysis
 
+1. Load the ToothGrowth data and perform some basic exploratory data analyses
+
 ```{r echo=TRUE}
+unique(ToothGrowth$supp)
+unique(ToothGrowth$dose)
 ```
 
-Now in the second portion of the project, we're going to analyze the ToothGrowth data in the R datasets package.
+```{r echo=TRUE}
+summarizedToothGrowth <-
+    ToothGrowth %>%
+    group_by(supp, dose) %>% 
+    summarize(len.mean = mean(len))
 
-1. Load the ToothGrowth data and perform some basic exploratory data analyses
+g <- ggplot(summarizedToothGrowth, aes(x = dose, y = len.mean, fill = supp)) + 
+    geom_col(position = "dodge") +
+    labs(
+        x = "Dose",
+        y = "Mean Length",
+        title = "Average Tooth Growth by Supplement and Dose",
+        fill = "Supplement"
+    )
+print(g)
+```
+
 2. Provide a basic summary of the data.
+
+## Confidence intervals and hypothesis tests
 3. Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering)
+
+```{r echo=TRUE}
+len_OJ_05 <- ToothGrowth$len[ToothGrowth$supp == "OJ" & ToothGrowth$dose == 0.5]
+len_OJ_10 <- ToothGrowth$len[ToothGrowth$supp == "OJ" & ToothGrowth$dose == 1.0]
+len_OJ_20 <- ToothGrowth$len[ToothGrowth$supp == "OJ" & ToothGrowth$dose == 2.0]
+len_VC_05 <- ToothGrowth$len[ToothGrowth$supp == "VC" & ToothGrowth$dose == 0.5]
+len_VC_10 <- ToothGrowth$len[ToothGrowth$supp == "VC" & ToothGrowth$dose == 1.0]
+len_VC_20 <- ToothGrowth$len[ToothGrowth$supp == "VC" & ToothGrowth$dose == 2.0]
+len_OJ <- ToothGrowth$len[ToothGrowth$supp == "OJ"]
+len_VC <- ToothGrowth$len[ToothGrowth$supp == "VC"]
+
+t.test(len_OJ_05, len_VC_05)
+t.test(len_OJ_10, len_VC_10)
+t.test(len_OJ_20, len_VC_20)
+t.test(len_OJ, len_VC)
+```
+
+## Conclusion
 4. State your conclusions and the assumptions needed for your conclusions.
