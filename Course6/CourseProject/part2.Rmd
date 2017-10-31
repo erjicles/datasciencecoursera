@@ -1,0 +1,32 @@
+---
+title: "part2"
+author: "Erik Johnson"
+date: "10/30/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+## Load the data
+
+```{r echo=TRUE}
+data("ToothGrowth")
+
+str(ToothGrowth)
+```
+
+## Exploratory data analysis
+
+```{r echo=TRUE}
+```
+
+Now in the second portion of the project, we're going to analyze the ToothGrowth data in the R datasets package.
+
+1. Load the ToothGrowth data and perform some basic exploratory data analyses
+2. Provide a basic summary of the data.
+3. Use confidence intervals and/or hypothesis tests to compare tooth growth by supp and dose. (Only use the techniques from class, even if there's other approaches worth considering)
+4. State your conclusions and the assumptions needed for your conclusions.

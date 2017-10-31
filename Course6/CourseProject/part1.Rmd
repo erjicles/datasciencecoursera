@@ -1,6 +1,7 @@
 ---
 title: "Part 1: Simulation Exercise"
 author: "Erik Johnson"
+date: "10/30/2017"
 output: html_document
 ---
 
@@ -67,7 +68,7 @@ hist(
     xlab = "Mean", 
     ylab = "Frequency", 
     main = "Simulation Mean Frequencies")
-abline(v = theoreticalMean, col = "lightblue", lwd = 2)
+abline(v = theoreticalMean, col = "lightblue", lwd = 3)
 
 
 # Show the difference between the average sample mean and the theoretical mean
@@ -91,7 +92,7 @@ hist(
     xlab = "Variance", 
     ylab = "Frequency", 
     main = "Simulation Variance Frequencies")
-abline(v = theoreticalVariance, col = "lightblue", lwd = 2)
+abline(v = theoreticalVariance, col = "lightblue", lwd = 3)
 
 # Show the difference between the average sample variance and the theoretical variance
 mean(simSigmas^2) - theoreticalVariance
