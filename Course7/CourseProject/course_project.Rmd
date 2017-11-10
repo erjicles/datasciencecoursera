@@ -1,0 +1,16 @@
+---
+title: "Regression Models Course Project"
+author: "Erik Johnson"
+date: "11/9/2017"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Synopsis
+
+### Exploratory Data Analysis
+
+### adsf
