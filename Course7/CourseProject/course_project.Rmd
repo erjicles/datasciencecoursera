@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ### Synopsis
-
+We analyzed the mtcars R data package to 
 ### Exploratory Data Analysis
 Possible confounders: wt (manual cars might weigh less than auto).
 ```{r}
@@ -19,5 +19,7 @@ fit1 <- lm(mpg ~ factor(am), data=mtcars)
 summary(fit1)
 fit2 <- lm(mpg ~ factor(am) + wt + cyl, data=mtcars)
 summary(fit2)
+fit3 <- lm(mpg ~ ., data=mtcars)
+summary(fit3)
 anova(fit1, fit2)
 ```
