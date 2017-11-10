@@ -2,24 +2,98 @@
 title: "Regression Models Course Project"
 author: "Erik Johnson"
 date: "11/9/2017"
-output: pdf_document
+output: 
+  pdf_document: 
+    latex_engine: lualatex
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
 ```
 
-### Synopsis
-We analyzed the mtcars R data package to 
-### Exploratory Data Analysis
-Possible confounders: wt (manual cars might weigh less than auto).
-```{r}
+## Synopsis
+We analyzed the mtcars dataset from the R data package to determine whether automatic or manual transmission cars are better for miles per gallon (mpg).
+
+```{r dataload,message=FALSE}
+library(ggplot2)
+library(dplyr)
 data(mtcars)
-fit1 <- lm(mpg ~ factor(am), data=mtcars)
+mtcars$amf <- factor(mtcars$am, levels=c(0,1), labels=c("automatic", "manual"))
+means <-
+    mtcars %>%
+    group_by(amf) %>%
+    summarize(mpg = mean(mpg))
+```
+
+## Exploratory Data Analysis
+We start by plotting mpg vs transmission type (see Figure \ref{fig:fig1} in appendix). We clearly see that manual transmission cars on average get better mpg than automatic cars (`r round(means$mpg[means$amf=="manual"], digits=2)` vs `r round(means$mpg[means$amf=="automatic"], digits=2)`, respectively), and there is no overlap at the 95% confidence level.
+
+```{r fig1,include=FALSE}
+fig1 <- ggplot(data=mtcars, mapping=aes(x = amf, y = mpg)) +
+    geom_boxplot() +
+    labs(
+        x = "Transmission Type", 
+        y = "Miles Per Gallon", 
+        title = "Miles Per Gallon vs Transmission Type")
+print(fig1)
+```
+
+However, the picture gets murkier if we consider other variables. For example, lower horsepower (hp) cars tend to get better gas mileage, and manual transmission cars tend to have lower hp than automatics. Indeed, we see this in Figure \ref{fig:fig2} - the manual transmission cars tend to cluster in the lower hp range, and consequently get better gas milesage than automatics.
+
+```{r fig2,include=FALSE}
+fig2 <- ggplot(data=mtcars, mapping=aes(x = hp, y = mpg, color = amf)) +
+    geom_point() +
+    labs(
+        x = "Horsepower", 
+        y = "Miles Per Gallon", 
+        title = "Miles Per Gallon vs Horsepower", 
+        color = "Transmission Type")
+print(fig2)
+```
+
+This tells us that we need to take confounding variables into account when selecting our model.
+
+## Model Selection
+As we saw previously, while mpg vs transmission type seems to show that manual cars get better mpg, other confounding variables may explain away this relationship.
+
+```{r fit1}
+fit1 <- lm(mpg ~ amf, data=mtcars)
+fit1conf <- confint(fit1)
+fit1p <- anova(fit1)[["Pr(>F)"]][[1]]
 summary(fit1)
-fit2 <- lm(mpg ~ factor(am) + wt + cyl, data=mtcars)
-summary(fit2)
-fit3 <- lm(mpg ~ ., data=mtcars)
-summary(fit3)
-anova(fit1, fit2)
+```
+
+We start with a linear fit of mpg vs transmission. This yields a coefficient of `r round(fit1$coefficients[2], digits=2)`, with `r round(fit1conf[2,1], digits=2)` to `r round(fit1conf[2,2], digits=2)` 95% confidence interval, and p-value `r round(fit1p, digits=5)`.
+
+We tried 
+
+Possible confounders: wt (manual cars might weigh less than auto).
+```{r echo=TRUE}
+#fit2 <- lm(mpg ~ amf + hp, data=mtcars)
+#fit3 <- lm(mpg ~ amf + hp + wt, data=mtcars)
+summary(fit1)
+#summary(fit2)
+#summary(fit3)
+for (n in names(mtcars)) {
+    if (n != "am" && n != "mpg") {
+        fitNew <- lm(mpg ~ amf + mtcars[[n]], data=mtcars)
+        print(n)
+        print(anova(fit1, fitNew))
+    }
+}
+#fit2 <- lm(mpg ~ amf + wt, data=mtcars)
+#fit3 <- lm(mpg ~ amf + wt + cyl, data=mtcars)
+#fit4 <- lm(mpg ~ amf + wt + cyl + carb, data=mtcars)
+# hp: .07
+# qsec: .06
+# carb: .07
+#anova(fit1, fit2, fit3, fit4)
+```
+
+### Appendix
+
+```{r ref.label="fig1",include=TRUE,fig.cap="\\label{fig:fig1}We see that manual vehicles appear to get better mpg than automatic vehicles."}
+```
+
+```{r ref.label="fig2",include=TRUE,fig.cap="\\label{fig:fig2}We see that manual vehicles tend to have lower horsepower than automatic vehicles, and lower horsepower vehicles tend to get better mpg. Therefore, hp is a possible confounder."}
 ```
