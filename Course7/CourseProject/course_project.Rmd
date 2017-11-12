@@ -12,88 +12,103 @@ knitr::opts_chunk$set(echo = FALSE)
 ```
 
 ## Synopsis
-We analyzed the mtcars dataset from the R data package to determine whether automatic or manual transmission cars are better for miles per gallon (mpg).
-
-```{r dataload,message=FALSE}
-library(ggplot2)
-library(dplyr)
-data(mtcars)
-mtcars$amf <- factor(mtcars$am, levels=c(0,1), labels=c("automatic", "manual"))
-means <-
-    mtcars %>%
-    group_by(amf) %>%
-    summarize(mpg = mean(mpg))
-```
+We analyzed the mtcars dataset from the R data package to determine whether automatic or manual transmission cars are better for miles per gallon (mpg). We hypothesized that manual cars would have on average better gas mileage than automatic cars. However, we found no significant mpg difference between automatic and manual when controlling for weight and horsepower. Indeed, we found that weight and horsepower are the most significant predictors of mpg.
 
 ## Exploratory Data Analysis
-We start by plotting mpg vs transmission type (see Figure \ref{fig:fig1} in appendix). We clearly see that manual transmission cars on average get better mpg than automatic cars (`r round(means$mpg[means$amf=="manual"], digits=2)` vs `r round(means$mpg[means$amf=="automatic"], digits=2)`, respectively), and there is no overlap at the 95% confidence level.
+We start by loading the mtcars dataset from the R data package. We add a new column, amf, that converts the transmission type (am) to a factor.
+```{r dataload,message=FALSE,echo=TRUE}
+library(ggplot2); library(dplyr);
+data(mtcars)
+mtcars$amf <- factor(mtcars$am, levels=c(0,1), labels=c("automatic", "manual"))
+```
+```{r calcmeans,include=FALSE}
+means <- mtcars %>% group_by(amf) %>% summarize(mpg = mean(mpg))
+```
 
+Next, we plot mpg vs transmission type (see Figure \ref{fig:fig1} in appendix). We clearly see that manual transmission cars on average get better mpg than automatic cars (`r round(means$mpg[means$amf=="manual"], digits=2)` vs `r round(means$mpg[means$amf=="automatic"], digits=2)`, respectively), and there is no overlap at the 95% confidence level.
 ```{r fig1,include=FALSE}
 fig1 <- ggplot(data=mtcars, mapping=aes(x = amf, y = mpg)) +
     geom_boxplot() +
-    labs(
-        x = "Transmission Type", 
-        y = "Miles Per Gallon", 
-        title = "Miles Per Gallon vs Transmission Type")
+    labs(x = "Transmission Type", y = "Miles Per Gallon", 
+         title = "Miles Per Gallon vs Transmission Type")
 print(fig1)
 ```
 
-However, the picture gets murkier if we consider other variables. For example, lower horsepower (hp) cars tend to get better gas mileage, and manual transmission cars tend to have lower hp than automatics. Indeed, we see this in Figure \ref{fig:fig2} - the manual transmission cars tend to cluster in the lower hp range, and consequently get better gas milesage than automatics.
-
+However, the picture gets murkier if we consider other variables. We see in Figure \ref{fig:fig2} that manual transmission cars tend to cluster in the lower horsepower (hp) range, and lower hp cars tend to get lower mpg. Additionally, we see in Figure \ref{fig:fig3} that automatic cars tend to be heavier than manuals, and heavier cars tend to get lower mpg.
 ```{r fig2,include=FALSE}
 fig2 <- ggplot(data=mtcars, mapping=aes(x = hp, y = mpg, color = amf)) +
     geom_point() +
-    labs(
-        x = "Horsepower", 
-        y = "Miles Per Gallon", 
-        title = "Miles Per Gallon vs Horsepower", 
-        color = "Transmission Type")
+    labs(x = "Horsepower", y = "Miles Per Gallon", 
+        title = "Miles Per Gallon vs Horsepower", color = "Transmission Type")
 print(fig2)
+```
+```{r fig3,include=FALSE}
+fig3 <- ggplot(data=mtcars, mapping=aes(x = wt, y = mpg, color = amf)) +
+    geom_point() +
+    labs(x = "Weight (1000 lbs)", y = "Miles Per Gallon",
+        title = "Miles Per Gallon vs Weight", color = "Transmission Type")
+print(fig3)
 ```
 
 This tells us that we need to take confounding variables into account when selecting our model.
 
 ## Model Selection
-As we saw previously, while mpg vs transmission type seems to show that manual cars get better mpg, other confounding variables may explain away this relationship.
-
-```{r fit1}
+We start with a linear fit of miles per gallon (mpg) as the outcome and transmission type (amf) as a factor predictor, mpg ~ amf (fit1). Next, we try adding additional confounding variables. As we saw before, horsepower (hp) and weight (wt) are possible candidates. We create a second fit, fit2, by adding hp as a predictor to the model (mpg ~ amf + hp). Then, we create a third fit, fit3, by adding wt as a third predictor (mpg ~ amf + hp + wt). 
+```{r fits,echo=TRUE}
 fit1 <- lm(mpg ~ amf, data=mtcars)
-fit1conf <- confint(fit1)
-fit1p <- anova(fit1)[["Pr(>F)"]][[1]]
-summary(fit1)
+fit2 <- lm(mpg ~ amf + hp, data=mtcars)
+fit3 <- lm(mpg ~ amf + hp + wt, data=mtcars)
+```
+```{r modelAnova,include=FALSE}
+fitAnova <- anova(fit1, fit2, fit3); fitAnova
 ```
 
-We start with a linear fit of mpg vs transmission. This yields a coefficient of `r round(fit1$coefficients[2], digits=2)`, with `r round(fit1conf[2,1], digits=2)` to `r round(fit1conf[2,2], digits=2)` 95% confidence interval, and p-value `r round(fit1p, digits=5)`.
-
-We tried 
-
-Possible confounders: wt (manual cars might weigh less than auto).
-```{r echo=TRUE}
-#fit2 <- lm(mpg ~ amf + hp, data=mtcars)
-#fit3 <- lm(mpg ~ amf + hp + wt, data=mtcars)
-summary(fit1)
-#summary(fit2)
-#summary(fit3)
-for (n in names(mtcars)) {
-    if (n != "am" && n != "mpg") {
-        fitNew <- lm(mpg ~ amf + mtcars[[n]], data=mtcars)
-        print(n)
-        print(anova(fit1, fitNew))
-    }
-}
-#fit2 <- lm(mpg ~ amf + wt, data=mtcars)
-#fit3 <- lm(mpg ~ amf + wt + cyl, data=mtcars)
-#fit4 <- lm(mpg ~ amf + wt + cyl + carb, data=mtcars)
-# hp: .07
-# qsec: .06
-# carb: .07
-#anova(fit1, fit2, fit3, fit4)
+Using anova, we find that fit2 is better than fit1, and fit3 is better than fit2 (Pr(>F) < 0.05 for each). 
+```{r ref.label="modelAnova",include=TRUE,echo=TRUE}
 ```
 
-### Appendix
+We also find that including any other predictors results in an anova Pr(>F)-value above 0.05, so we conclude that fit3 is the best linear model to use.
 
-```{r ref.label="fig1",include=TRUE,fig.cap="\\label{fig:fig1}We see that manual vehicles appear to get better mpg than automatic vehicles."}
+## Residuals
+We investigate the residuals of our model (fit3). In Figure \ref{fig:fig4}, we plot Residuals vs Fitted, Normal Q-Q, Scale-Location, and Residuals vs Leverage. We find that the residuals don't exhibit any discernable pattern and the errors seem to be normally distributed.
+```{r fig4,include=FALSE}
+par(mfrow = c(2, 2)); plot(fit3)
 ```
 
-```{r ref.label="fig2",include=TRUE,fig.cap="\\label{fig:fig2}We see that manual vehicles tend to have lower horsepower than automatic vehicles, and lower horsepower vehicles tend to get better mpg. Therefore, hp is a possible confounder."}
+In Figure \ref{fig:fig5}, we also plot histograms of the dfbetas and hatvalues to show the leverage and power of the points in the data, respectively. We see that the betas and hatvalues are mostly clustered near zero with no major outliers, showing that there aren't any high-leverage or high-power points skewing the data.
+```{r fig5,include=FALSE}
+par(mfrow = c(1, 2)); hist(dfbetas(fit3)[,2]); hist(hatvalues(fit3))
+```
+
+We conclude that our model is a good fit for the data.
+
+## Conclusion
+We finish by looking at the summary of our model.
+```{r summaryFit3,echo=TRUE}
+fit3coeffs <- summary(fit3)$coefficients; fit3coeffs
+fit3confint <- confint(fit3); fit3confint
+```
+We see that the beta value for going from an automatic transmission to a manual transmission while keeping other variables constant predicts a `r format(round(fit3coeffs[2,1], 2), scientific=FALSE)` increase in mpg. However, the p-value for this coefficient is `r format(round(fit3coeffs[2,4], 5), scientific=FALSE)` > 0.05, indicating that we can't reject the null hypothesis that it's equal to zero. Indeed, looking at the 95% confidence interval for that coefficient, we see that it contains zero.
+
+On the other hand, the coefficients for hp and wt both have p < 0.05, and both predict a decrease in mpg for every unit increase in hp and wt.
+
+We therefore conclude that hp and wt are significant predictors of mpg. On the other hand, there is no significant difference between manual and automatic transmission cars in predicting mpg, when hp and weight are held constant.
+
+\pagebreak
+
+## Appendix
+
+```{r ref.label="fig1",include=TRUE,echo=TRUE,fig.width=6,fig.height=3.75,fig.cap="\\label{fig:fig1}We see that manual vehicles appear to get better mpg than automatic vehicles."}
+```
+
+```{r ref.label="fig2",include=TRUE,echo=TRUE,fig.width=6,fig.height=3.75,fig.cap="\\label{fig:fig2}We see that manual vehicles tend to have lower horsepower than automatic vehicles, and lower horsepower vehicles tend to get better mpg. Therefore, hp is a possible confounder."}
+```
+
+```{r ref.label="fig3",include=TRUE,echo=TRUE,fig.width=6,fig.height=3.75,fig.cap="\\label{fig:fig3}We see that automatic vehicles tend to be heavier than manuals, and heavier vehicles get worse mpg. Therefore, weight is a possible confounder."}
+```
+
+```{r ref.label="fig4",include=TRUE,echo=TRUE,fig.cap="\\label{fig:fig4}Residual plots showing that the errors are normally distributed and don't have discernable patterns."}
+```
+
+```{r ref.label="fig5",include=TRUE,echo=TRUE,fig.cap="\\label{fig:fig5}Histogram plots of dfbetas and residual hat values showing that there aren't any outliers with high leverage or power."}
 ```
