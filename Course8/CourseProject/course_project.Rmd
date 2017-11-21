@@ -9,6 +9,22 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+## Synopsis
+```{r libraries,message=FALSE}
+library(caret)
+```
+
+```{r readdata}
+rawData <- read.csv("pml-training.csv")
+dim(training)
+```
+
+```{r cleandata}
+colDataPercentages <- sapply(names(training), function(colName) {sum(!is.na(training[[colName]]))/nrow(training)})
+# Remove columns that are NA except for when new_window = yes
+rawData <- rawData[,names(colDataPercentages[colDataPercentages == 1])]
+```
+
 ## R Markdown
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
