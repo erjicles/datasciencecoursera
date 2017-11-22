@@ -20,9 +20,30 @@ dim(training)
 ```
 
 ```{r cleandata}
-colDataPercentages <- sapply(names(training), function(colName) {sum(!is.na(training[[colName]]))/nrow(training)})
-# Remove columns that are NA except for when new_window = yes
-rawData <- rawData[,names(colDataPercentages[colDataPercentages == 1])]
+# Look for near-zero variables
+nsv <- nearZeroVar(rawData,saveMetrics=TRUE)
+# Remove near-zero variables
+dat <- rawData[,nsv$nzv == FALSE]
+# Remove name variables
+# c("X", "user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp")
+dat <- dat[,-c(1:5)]
+# Get the percent of NA values for each column
+colNAPercentages <- sapply(names(dat), function(colName){sum(is.na(dat[[colName]]))/nrow(dat)})
+# Remove columns with almost all NA values
+dat <- dat[,names(colNAPercentages[colNAPercentages < 0.97])]
+
+# Create training and testing partitions
+set.seed(32465)
+inTrain <- createDataPartition(y=dat$classe, p=0.6, list=FALSE)
+training <- dat[inTrain,]
+validation <- dat[-inTrain,]
+
+# Use cross-validation (5-fold) random forest to fit the model
+fitRF <- train(classe ~ ., data=training, method="rf", trControl=trainControl(method="cv",5))
+
+# Check the accuracy on the validation data
+predFitRF <- predict(fitRF, validation)
+confusionMatrix(validation$classe, predFitRF)
 ```
 
 ## R Markdown
