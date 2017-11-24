@@ -16,7 +16,6 @@ library(caret)
 
 ```{r readdata}
 rawData <- read.csv("pml-training.csv")
-dim(training)
 ```
 
 ```{r cleandata}
@@ -31,19 +30,79 @@ dat <- dat[,-c(1:5)]
 colNAPercentages <- sapply(names(dat), function(colName){sum(is.na(dat[[colName]]))/nrow(dat)})
 # Remove columns with almost all NA values
 dat <- dat[,names(colNAPercentages[colNAPercentages < 0.97])]
+```
 
+```{r partitionData}
 # Create training and testing partitions
 set.seed(32465)
 inTrain <- createDataPartition(y=dat$classe, p=0.6, list=FALSE)
 training <- dat[inTrain,]
 validation <- dat[-inTrain,]
+```
 
+```{r fitRF,cache=TRUE}
 # Use cross-validation (5-fold) random forest to fit the model
-fitRF <- train(classe ~ ., data=training, method="rf", trControl=trainControl(method="cv",5))
+fitRF <- train(classe ~ ., data=training, method="rf", trControl=trainControl(method="cv",10))
+```
 
+```{r fitRFCheck}
 # Check the accuracy on the validation data
 predFitRF <- predict(fitRF, validation)
 confusionMatrix(validation$classe, predFitRF)
+```
+
+```{r fitRPart,cache=TRUE}
+fitRPart <- train(classe ~ ., data=training, method="rpart")
+```
+
+```{r fitRPartCheck}
+predFitRPart <- predict(fitRPart, validation)
+confusionMatrix(validation$classe, predFitRPart)
+```
+
+```{r fitGBM,cache=TRUE}
+fitGBM <- train(classe ~ ., data=training, method="gbm", verbose=FALSE)
+```
+
+```{r fitGBMCheck}
+predFitGBM <- predict(fitGBM, validation)
+confusionMatrix(validation$classe, predFitGBM)
+```
+
+```{r fitNB,cache=TRUE}
+fitNB <- train(classe ~ ., data=training, method="nb")
+```
+
+```{r fitNBCheck}
+predFitNB <- predict(fitNB, validation)
+confusionMatrix(validation$classe, predFitNB)
+```
+
+```{r fitLDA,cache=TRUE}
+fitLDA <- train(classe ~ ., data=training, method="lda")
+```
+
+```{r fitLDACheck}
+predFitLDA <- predict(fitLDA, validation)
+confusionMatrix(validation$classe, predFitLDA)
+```
+
+```{r combineModels}
+predDF <- data.frame(predFitRF, predFitRPart, predFitGBM, predFitNB, predFitLDA, classe = validation$classe)
+```
+
+```{r fitCombined,cache=TRUE}
+fitCombined <- train(classe ~ ., data=predDF, method="rf", trControl=trainControl(method="cv",10))
+fitCombined
+```
+
+```{r majorityVote}
+# Select only models that attained accuracy > .75
+# RF, GBM, NB
+majorityVote <- function(currentRow) {
+    result <- as.integer(names(which.max(sort(table(c(predDF$predFitRF[currentRow], predDF$predFitGBM[currentRow], predDF$predFitNB[currentRow])), decreasing=TRUE)))[1])
+    result
+}
 ```
 
 ## R Markdown
