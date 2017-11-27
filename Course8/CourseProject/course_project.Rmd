@@ -10,85 +10,134 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Synopsis
+In this project, we aim to create a model that predicts how well people perform various barbell lifts, given data from accelerometers on the belt, forearm, arm, and dumbell. Specifically, we aim to classify whether they perform the lifts correctly, or incorrectly in one of 5 different ways. Using the dataset provided for the project, we built a random forest model that achieves accuracy (error) in this prediction.
+
+## Data Preparation
+We start by loading the data from the file.
 ```{r libraries,message=FALSE}
 library(caret)
 ```
-
 ```{r readdata}
 rawData <- read.csv("pml-training.csv")
 ```
 
-```{r cleandata}
+Next, we remove near-zero valued columns, descriptive columns that don't contribute to the prediction (e.g., timestamp), and columns with almost all NA values.
+```{r removeNearZero}
 # Look for near-zero variables
 nsv <- nearZeroVar(rawData,saveMetrics=TRUE)
 # Remove near-zero variables
 dat <- rawData[,nsv$nzv == FALSE]
-# Remove name variables
-# c("X", "user_name", "raw_timestamp_part_1", "raw_timestamp_part_2", "cvtd_timestamp")
-dat <- dat[,-c(1:5)]
+```
+```{r removeNameColumns}
+# Remove descriptive variables
+descriptiveColumns <- grepl("X|user_name|raw_timestamp_part_1|raw_timestamp_part_2|cvtd_timestamp", names(dat))
+dat <- dat[,-descriptiveColumns]
+```
+```{r removeNAColumns}
 # Get the percent of NA values for each column
 colNAPercentages <- sapply(names(dat), function(colName){sum(is.na(dat[[colName]]))/nrow(dat)})
-# Remove columns with almost all NA values
+# Keep columns with less than 97% NA values
 dat <- dat[,names(colNAPercentages[colNAPercentages < 0.97])]
 ```
 
+We finish our data preparation by partitioning the data into training and test sets.
 ```{r partitionData}
 # Create training and testing partitions
 set.seed(32465)
-inTrain <- createDataPartition(y=dat$classe, p=0.6, list=FALSE)
+inTrain <- createDataPartition(y=dat$classe, p=0.7, list=FALSE)
 training <- dat[inTrain,]
-validation <- dat[-inTrain,]
+testing <- dat[-inTrain,]
 ```
 
+## Model Building
+Our strategy of model creation is to try several models and pick the one with the best accuracy. Since this is a non-linear problem, we only try models that perform best in non-linear scenarios: random forests, decision trees, boosting with trees, naive bayes, and linear discriminant analysis.
+
+For each model, we estimate its out-of-sample accuracy and error by predicting on the testing data partition.
+
+### Random Forest
+We create a random forest model using 10-fold cross-testing to reduce bias.
 ```{r fitRF,cache=TRUE}
-# Use cross-validation (5-fold) random forest to fit the model
+# Use cross-testing (10-fold) random forest to fit the model
 fitRF <- train(classe ~ ., data=training, method="rf", trControl=trainControl(method="cv",10))
 ```
-
 ```{r fitRFCheck}
-# Check the accuracy on the validation data
-predFitRF <- predict(fitRF, validation)
-confusionMatrix(validation$classe, predFitRF)
+# Check the accuracy on the testing data
+predFitRF <- predict(fitRF, testing)
+confusionMatrix(testing$classe, predFitRF)
+```
+```{r plotFitRF}
+plot(fitRF)
 ```
 
+### Decision Trees
+We create a decision tree model using the default values.
 ```{r fitRPart,cache=TRUE}
 fitRPart <- train(classe ~ ., data=training, method="rpart")
 ```
-
 ```{r fitRPartCheck}
-predFitRPart <- predict(fitRPart, validation)
-confusionMatrix(validation$classe, predFitRPart)
+predFitRPart <- predict(fitRPart, testing)
+confusionMatrix(testing$classe, predFitRPart)
+```
+```{r plotFitRPart}
+plot(fitRPart)
 ```
 
+### Boosting With Trees
 ```{r fitGBM,cache=TRUE}
 fitGBM <- train(classe ~ ., data=training, method="gbm", verbose=FALSE)
 ```
-
 ```{r fitGBMCheck}
-predFitGBM <- predict(fitGBM, validation)
-confusionMatrix(validation$classe, predFitGBM)
+predFitGBM <- predict(fitGBM, testing)
+confusionMatrix(testing$classe, predFitGBM)
+```
+```{r plotFitGBM}
+plot(fitGBM)
 ```
 
-```{r fitNB,cache=TRUE}
+### Naive Bayes
+```{r fitNB,cache=TRUE,message=FALSE,warning=FALSE}
 fitNB <- train(classe ~ ., data=training, method="nb")
 ```
-
-```{r fitNBCheck}
-predFitNB <- predict(fitNB, validation)
-confusionMatrix(validation$classe, predFitNB)
+```{r fitNBCheck,message=FALSE,warning=FALSE}
+predFitNB <- predict(fitNB, testing)
+```
+```{r confusionMatrixNB}
+confusionMatrix(testing$classe, predFitNB)
+```
+```{r plotFitNB}
+plot(fitNB)
 ```
 
+### Linear Discriminant Analysis
 ```{r fitLDA,cache=TRUE}
 fitLDA <- train(classe ~ ., data=training, method="lda")
 ```
-
 ```{r fitLDACheck}
-predFitLDA <- predict(fitLDA, validation)
-confusionMatrix(validation$classe, predFitLDA)
+predFitLDA <- predict(fitLDA, testing)
+confusionMatrix(testing$classe, predFitLDA)
 ```
 
+## Model Selection
+We see that the random forest model performs best, with an estimated out-of-sample accuracy of `r 100*max(fitRF$results$Accuracy)`% and out-of-sample error of `r 100*(1 - max(fitRF$results$Accuracy))`%. Therefore, we select this model to use on the training dataset.
+
+## Test Class Prediction
+We use the random forest model to predict the weight training class in the test dataset.
+
+We start by loading the test data.
+```{r loadTestData}
+testData <- read.csv("pml-testing.csv")
+```
+
+Next, we predict the classe of the test data.
+```{r testPrediction}
+testPrediction <- predict(fitRF, testData)
+testPrediction
+```
+
+
+
 ```{r combineModels}
-predDF <- data.frame(predFitRF, predFitRPart, predFitGBM, predFitNB, predFitLDA, classe = validation$classe)
+predDF <- data.frame(predFitRF, predFitRPart, predFitGBM, predFitNB, predFitLDA, classe = testing$classe)
 ```
 
 ```{r fitCombined,cache=TRUE}
@@ -104,23 +153,3 @@ majorityVote <- function(currentRow) {
     result
 }
 ```
-
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Including Plots
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
