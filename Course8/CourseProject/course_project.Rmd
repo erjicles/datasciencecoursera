@@ -24,14 +24,14 @@ rawData <- read.csv("pml-training.csv")
 Next, we remove near-zero valued columns, descriptive columns that don't contribute to the prediction (e.g., timestamp), and columns with almost all NA values.
 ```{r removeNearZero}
 # Look for near-zero variables
-nsv <- nearZeroVar(rawData,saveMetrics=TRUE)
+nzv <- nearZeroVar(rawData,saveMetrics=TRUE)
 # Remove near-zero variables
-dat <- rawData[,nsv$nzv == FALSE]
+dat <- rawData[,nzv$nzv == FALSE]
 ```
 ```{r removeNameColumns}
 # Remove descriptive variables
 descriptiveColumns <- grepl("X|user_name|raw_timestamp_part_1|raw_timestamp_part_2|cvtd_timestamp", names(dat))
-dat <- dat[,-descriptiveColumns]
+dat <- dat[,!descriptiveColumns]
 ```
 ```{r removeNAColumns}
 # Get the percent of NA values for each column
@@ -52,13 +52,17 @@ testing <- dat[-inTrain,]
 ## Model Building
 Our strategy of model creation is to try several models and pick the one with the best accuracy. Since this is a non-linear problem, we only try models that perform best in non-linear scenarios: random forests, decision trees, boosting with trees, naive bayes, and linear discriminant analysis.
 
-For each model, we estimate its out-of-sample accuracy and error by predicting on the testing data partition.
+For each model, we estimate its out-of-sample accuracy and error by predicting on the testing data partition. We use 10-fold cross-validation to reduce bias.
+
+```{r trainControl}
+trControl <- trainControl(method="cv", 10)
+```
 
 ### Random Forest
 We create a random forest model using 10-fold cross-testing to reduce bias.
 ```{r fitRF,cache=TRUE}
 # Use cross-testing (10-fold) random forest to fit the model
-fitRF <- train(classe ~ ., data=training, method="rf", trControl=trainControl(method="cv",10))
+fitRF <- train(classe ~ ., data=training, method="rf", trControl=trControl)
 ```
 ```{r fitRFCheck}
 # Check the accuracy on the testing data
@@ -72,7 +76,7 @@ plot(fitRF)
 ### Decision Trees
 We create a decision tree model using the default values.
 ```{r fitRPart,cache=TRUE}
-fitRPart <- train(classe ~ ., data=training, method="rpart")
+fitRPart <- train(classe ~ ., data=training, method="rpart", trControl=trControl)
 ```
 ```{r fitRPartCheck}
 predFitRPart <- predict(fitRPart, testing)
@@ -84,7 +88,7 @@ plot(fitRPart)
 
 ### Boosting With Trees
 ```{r fitGBM,cache=TRUE}
-fitGBM <- train(classe ~ ., data=training, method="gbm", verbose=FALSE)
+fitGBM <- train(classe ~ ., data=training, method="gbm", trControl=trControl, verbose=FALSE)
 ```
 ```{r fitGBMCheck}
 predFitGBM <- predict(fitGBM, testing)
@@ -96,7 +100,7 @@ plot(fitGBM)
 
 ### Naive Bayes
 ```{r fitNB,cache=TRUE,message=FALSE,warning=FALSE}
-fitNB <- train(classe ~ ., data=training, method="nb")
+fitNB <- train(classe ~ ., data=training, method="nb", trControl=trControl)
 ```
 ```{r fitNBCheck,message=FALSE,warning=FALSE}
 predFitNB <- predict(fitNB, testing)
@@ -110,7 +114,7 @@ plot(fitNB)
 
 ### Linear Discriminant Analysis
 ```{r fitLDA,cache=TRUE}
-fitLDA <- train(classe ~ ., data=training, method="lda")
+fitLDA <- train(classe ~ ., data=training, method="lda", trControl=trControl)
 ```
 ```{r fitLDACheck}
 predFitLDA <- predict(fitLDA, testing)
@@ -118,7 +122,7 @@ confusionMatrix(testing$classe, predFitLDA)
 ```
 
 ## Model Selection
-We see that the random forest model performs best, with an estimated out-of-sample accuracy of `r 100*max(fitRF$results$Accuracy)`% and out-of-sample error of `r 100*(1 - max(fitRF$results$Accuracy))`%. Therefore, we select this model to use on the training dataset.
+We see that the random forest model performs best, with an estimated out-of-sample accuracy of `r round(100*max(fitRF$results$Accuracy),digits=2)`% and out-of-sample error of `r round(100*(1 - max(fitRF$results$Accuracy)),digits=2)`%. Therefore, we select this model to use on the training dataset.
 
 ## Test Class Prediction
 We use the random forest model to predict the weight training class in the test dataset.
