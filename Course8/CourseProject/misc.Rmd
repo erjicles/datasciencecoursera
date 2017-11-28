@@ -1,0 +1,30 @@
+---
+title: "misc"
+author: "Erik Johnson"
+date: "November 28, 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Miscellaneous
+
+```{r combineModels}
+predDF <- data.frame(predFitRF, predFitRPart, predFitGBM, predFitNB, predFitLDA, classe = testing$classe)
+```
+
+```{r fitCombined,cache=TRUE}
+fitCombined <- train(classe ~ ., data=predDF, method="rf", trControl=trainControl(method="cv",10))
+fitCombined
+```
+
+```{r majorityVote}
+# Select only models that attained accuracy > .75
+# RF, GBM, NB
+majorityVote <- function(currentRow) {
+    result <- as.integer(names(which.max(sort(table(c(predDF$predFitRF[currentRow], predDF$predFitGBM[currentRow], predDF$predFitNB[currentRow])), decreasing=TRUE)))[1])
+    result
+}
+```
