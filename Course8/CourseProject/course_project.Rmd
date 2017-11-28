@@ -10,7 +10,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ## Synopsis
-In this project, we aim to create a model that predicts how well people perform various barbell lifts, given data from accelerometers on the belt, forearm, arm, and dumbell. Specifically, we aim to classify whether they perform the lifts correctly, or incorrectly in one of 5 different ways. Using the dataset provided for the project, we built a random forest model that achieves accuracy (error) in this prediction.
+In this project, we aim to create a model that predicts how well people perform various barbell lifts, given data from accelerometers on the belt, forearm, arm, and dumbell. Specifically, we aim to classify whether they perform the lifts correctly, or incorrectly in one of 5 different ways. Using the dataset provided for the project, we built a random forest model that achieves an estimated out-of-sample error rate of 0.27%.
 
 ## Data Preparation
 We start by loading the data from the file.
@@ -59,28 +59,28 @@ trControl <- trainControl(method="cv", 10)
 ```
 
 ### Random Forest
-We create a random forest model using 10-fold cross-testing to reduce bias.
 ```{r fitRF,cache=TRUE}
-# Use cross-testing (10-fold) random forest to fit the model
+# Train a random forest model
 fitRF <- train(classe ~ ., data=training, method="rf", trControl=trControl)
 ```
 ```{r fitRFCheck}
-# Check the accuracy on the testing data
+# Check the accuracy on the testing partition
 predFitRF <- predict(fitRF, testing)
-confusionMatrix(testing$classe, predFitRF)
+confFitRF <- confusionMatrix(testing$classe, predFitRF); confFitRF;
 ```
 ```{r plotFitRF}
 plot(fitRF)
 ```
 
 ### Decision Trees
-We create a decision tree model using the default values.
 ```{r fitRPart,cache=TRUE}
+# Train a decision tree model
 fitRPart <- train(classe ~ ., data=training, method="rpart", trControl=trControl)
 ```
 ```{r fitRPartCheck}
+# Check the accuracy on the testing partition
 predFitRPart <- predict(fitRPart, testing)
-confusionMatrix(testing$classe, predFitRPart)
+confFitRPart <- confusionMatrix(testing$classe, predFitRPart); confFitRPart;
 ```
 ```{r plotFitRPart}
 plot(fitRPart)
@@ -88,11 +88,13 @@ plot(fitRPart)
 
 ### Boosting With Trees
 ```{r fitGBM,cache=TRUE}
+# Train a boosting with trees model
 fitGBM <- train(classe ~ ., data=training, method="gbm", trControl=trControl, verbose=FALSE)
 ```
 ```{r fitGBMCheck}
+# Check the accuracy on the testing partition
 predFitGBM <- predict(fitGBM, testing)
-confusionMatrix(testing$classe, predFitGBM)
+confFitGBM <- confusionMatrix(testing$classe, predFitGBM); confFitGBM;
 ```
 ```{r plotFitGBM}
 plot(fitGBM)
@@ -100,13 +102,15 @@ plot(fitGBM)
 
 ### Naive Bayes
 ```{r fitNB,cache=TRUE,message=FALSE,warning=FALSE}
+# Train a naive bayes model
 fitNB <- train(classe ~ ., data=training, method="nb", trControl=trControl)
 ```
 ```{r fitNBCheck,message=FALSE,warning=FALSE}
+# Check the accuracy on the testing partition
 predFitNB <- predict(fitNB, testing)
 ```
 ```{r confusionMatrixNB}
-confusionMatrix(testing$classe, predFitNB)
+confFitNB <- confusionMatrix(testing$classe, predFitNB); confFitNB;
 ```
 ```{r plotFitNB}
 plot(fitNB)
@@ -114,25 +118,27 @@ plot(fitNB)
 
 ### Linear Discriminant Analysis
 ```{r fitLDA,cache=TRUE}
+# Train a linear discriminant analysis model
 fitLDA <- train(classe ~ ., data=training, method="lda", trControl=trControl)
 ```
 ```{r fitLDACheck}
+# Check the accuracy on the testing partition
 predFitLDA <- predict(fitLDA, testing)
-confusionMatrix(testing$classe, predFitLDA)
+confFitLDA <- confusionMatrix(testing$classe, predFitLDA); confFitLDA;
 ```
 
 ## Model Selection
-We see that the random forest model performs best, with an estimated out-of-sample accuracy of `r round(100*max(fitRF$results$Accuracy),digits=2)`% and out-of-sample error of `r round(100*(1 - max(fitRF$results$Accuracy)),digits=2)`%. Therefore, we select this model to use on the training dataset.
+We see that the random forest model performs best, with an estimated out-of-sample accuracy of `r round(100*confFitRF$overall["Accuracy"],digits=2)`% and out-of-sample error of `r round(100*(1 - confFitRF$overall["Accuracy"]),digits=2)`% (as estimated via predicting on the testing data partition). Therefore, we select this model to use on the test dataset.
 
 ## Test Class Prediction
-We use the random forest model to predict the weight training class in the test dataset.
+We use the random forest model we created previously to predict the weight training class in the test dataset.
 
 We start by loading the test data.
 ```{r loadTestData}
 testData <- read.csv("pml-testing.csv")
 ```
 
-Next, we predict the classe of the test data.
+Finally, we predict the classe of the test data.
 ```{r testPrediction}
 testPrediction <- predict(fitRF, testData)
 testPrediction
@@ -140,20 +146,4 @@ testPrediction
 
 
 
-```{r combineModels}
-predDF <- data.frame(predFitRF, predFitRPart, predFitGBM, predFitNB, predFitLDA, classe = testing$classe)
-```
 
-```{r fitCombined,cache=TRUE}
-fitCombined <- train(classe ~ ., data=predDF, method="rf", trControl=trainControl(method="cv",10))
-fitCombined
-```
-
-```{r majorityVote}
-# Select only models that attained accuracy > .75
-# RF, GBM, NB
-majorityVote <- function(currentRow) {
-    result <- as.integer(names(which.max(sort(table(c(predDF$predFitRF[currentRow], predDF$predFitGBM[currentRow], predDF$predFitNB[currentRow])), decreasing=TRUE)))[1])
-    result
-}
-```
