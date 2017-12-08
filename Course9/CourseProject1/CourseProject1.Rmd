@@ -1,0 +1,35 @@
+---
+title: "Course Project 1"
+author: "Erik Johnson"
+date: "12/7/2017"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Synopsis
+In this project, we create a simple map using the leaflet package. We show the location of ComicCon 2018.
+
+## Simple Leaflets Map
+
+```{r}
+library(leaflet)
+
+# The lat and lng for the Anaheim Convention Center
+# where Wondercon 2018 will be held
+wonderconLat <- 33.8014049
+wonderconLng <- -117.920892
+
+# Create the map
+my_map <-
+    leaflet() %>%
+    addTiles() %>%
+    addMarkers(lat=wonderconLat, lng=wonderconLng, 
+               popup="<a href='https://www.comic-con.org/wca'>WonderCon 2018</a>")
+
+my_map
+```
