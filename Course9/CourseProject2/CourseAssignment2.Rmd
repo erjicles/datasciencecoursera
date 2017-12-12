@@ -1,0 +1,33 @@
+---
+title: "Week 3 Assignment"
+author: "Erik Johnson"
+date: "12/11/2017"
+output: 
+  ioslides_presentation: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+## Synopsis
+In this project, we create a web page presentation featuring a plot created using Plotly. We plot the CO2 uptake of plants as a function of the concentration of CO2 in the environment using the CO2 dataset.
+
+```{r message=FALSE,echo=TRUE}
+library(plotly)
+data(CO2)
+```
+```{r eval=FALSE,echo=TRUE}
+# Plot CO2 uptake as a function of the ambient CO2 concentration
+plot_ly(data=CO2, x=~conc, y=~uptake, 
+        color=~Plant, symbol=~Treatment, 
+        type="scatter", mode="markers")
+```
+
+## Plotly Plot
+```{r}
+plot_ly(data=CO2, x=~conc, y=~uptake, color=~Plant, symbol=~Treatment, type="scatter", mode="markers")
+```
+
+## Thanks!
