@@ -4,9 +4,10 @@ library(plotly)
 
 shinyServer(function(input, output) {
     
-    inTrainSet <- createDataPartition(y=iris$Species, p=0.6, list=FALSE)
-    training <- iris[inTrain,]
-    testing <- iris[-inTrain,]
+    inTrain <- reactive({
+        createDataPartition(y=iris$Species, p=input$pTrain, list=FALSE)
+    })
+    
     #pTrain <- input$pTrain
     #inTrainSet <- createDataPartition(y=iris$Species, p=pTrain, list=FALSE)
     #training <- iris[inTrainSet,]
@@ -25,14 +26,17 @@ shinyServer(function(input, output) {
     })
     
     fit <- reactive({
+        training <- iris[inTrain(),]
         train(Species ~ ., data=training, method=input$modelType, trControl=tr())
     })
     
     predFit <- reactive({
+        testing <- iris[-inTrain(),]
         predict(fit(), testing)
     })
     
     updatedTesting <- reactive({
+        testing <- iris[-inTrain(),]
         cbind(testing, PredictedSpecies = predFit())
     })
     
@@ -47,7 +51,9 @@ shinyServer(function(input, output) {
     
     output$plot1 <- renderPlotly({
         uTesting <- updatedTesting()
-        plot_ly(uTesting, x=~Petal.Width, y=~Sepal.Width, color=~Species, symbol=~PredictedSpecies)
+        levels(uTesting$PredictedSpecies) <- paste(levels(uTesting$PredictedSpecies), " (Predicted)")
+        levels(uTesting$Species) <- paste(levels(uTesting$Species), " (Actual)")
+        plot_ly(uTesting, x=~Petal.Width, y=~Sepal.Width, color=~Species, symbol=~PredictedSpecies, type="scatter", mode="markers")
     })
     
 })
