@@ -1,4 +1,10 @@
 library(shiny)
+library(e1071)
+library(randomForest)
+library(rpart)
+library(gbm)
+library(klaR)
+library(MASS)
 library(caret)
 library(plotly)
 
