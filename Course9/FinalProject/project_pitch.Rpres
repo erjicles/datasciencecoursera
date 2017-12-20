@@ -1,0 +1,49 @@
+Reproducible Pitch Presentation
+========================================================
+author: Erik Johnson
+date: 12/18/2017
+autosize: true
+
+Predicting Iris Species
+========================================================
+### An Interactive Machine Learning Model
+
+- A shiny app that uses machine learning to predict plant species from the iris dataset.
+- Allows the user to tweak the model parameters and machine learning algorithms to create more accurate models.
+
+Model Creation
+========================================================
+The shiny app uses the caret package and one of five user-selectable algorithms to train a machine learning model on the iris data and estimate the model accuracy.
+
+```{r echo=FALSE,message=FALSE,warning=FALSE}
+library(caret)
+data(iris)
+set.seed(24256);
+inTrain <- createDataPartition(y=iris$Species, p=0.6, list=FALSE)
+training <- iris[inTrain,]
+testing <- iris[-inTrain,];
+```
+
+```{r message=FALSE,warning=FALSE}
+fit <- train(Species ~ ., data=training, method="rf")
+predFit <- predict(fit, testing)
+confFit <- confusionMatrix(testing$Species, predFit)
+confFit$overall["Accuracy"]
+```
+
+Interactive Results
+========================================================
+```{r, echo=FALSE}
+library(ggplot2)
+qplot(data=testing, x=Petal.Width, y=Sepal.Width, color=Species, shape=predFit)
+```
+
+Empowers Exploration
+========================================================
+The app gives the user the tools to discover the best prediction model for the data:
+
+- Choose between five different machine learning algorithms: rf, rpart, gba, nb, lda
+- Choose the size of the training/testing datasets
+- Choose the parameter tweaking method:
+    - Bootstrap
+    - Cross-validation
