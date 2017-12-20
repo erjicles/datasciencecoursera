@@ -4,15 +4,13 @@ library(plotly)
 
 shinyServer(function(input, output) {
     
+    # Create the training data list based on the user-input % in the training set
     inTrain <- reactive({
+        set.seed(input$seed)
         createDataPartition(y=iris$Species, p=input$pTrain, list=FALSE)
     })
     
-    #pTrain <- input$pTrain
-    #inTrainSet <- createDataPartition(y=iris$Species, p=pTrain, list=FALSE)
-    #training <- iris[inTrainSet,]
-    #testing <- iris[-inTrainSet,]
-    
+    # Get the user-specified train control
     tr <- reactive({
         if (input$trainControl == "none") {
             trainControl(method="none")
@@ -25,30 +23,36 @@ shinyServer(function(input, output) {
         }
     })
     
+    # Train the model on the training set
     fit <- reactive({
         training <- iris[inTrain(),]
         train(Species ~ ., data=training, method=input$modelType, trControl=tr())
     })
     
+    # Predict the species on the testing set
     predFit <- reactive({
         testing <- iris[-inTrain(),]
         predict(fit(), testing)
     })
     
+    # Add the predicted species to the dataset
     updatedTesting <- reactive({
         testing <- iris[-inTrain(),]
         cbind(testing, PredictedSpecies = predFit())
     })
     
+    # Get a confusion matrix of the results
     confFit <- reactive({
         uTesting <- updatedTesting()
         confusionMatrix(uTesting$Species, uTesting$PredictedSpecies)
     })
     
+    # Output the prediction accuracy on the testing dataset
     output$accuracy <- renderText({
         confFit()$overall["Accuracy"]
     })
     
+    # Output a plotly graph of the actual and predicted species
     output$plot1 <- renderPlotly({
         uTesting <- updatedTesting()
         levels(uTesting$PredictedSpecies) <- paste(levels(uTesting$PredictedSpecies), " (Predicted)")
