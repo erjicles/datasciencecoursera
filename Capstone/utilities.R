@@ -1,3 +1,9 @@
+## @knitr utilityFunctionGetDataSample
+
+## This function takes a file name and optionally a probability.
+## It returns a vector containing a selection of lines from the file chosen at
+## random according to the given probability. If a probability is not given or
+## is not between 0 and 1 (inclusive), then returns all lines.
 getDataSample <- function (fileName, p = -1.0) {
     
     # Open the file connection
@@ -34,3 +40,4 @@ getDataSample <- function (fileName, p = -1.0) {
     result
     
 }
+

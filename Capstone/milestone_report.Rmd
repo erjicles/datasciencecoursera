@@ -1,0 +1,102 @@
+---
+title: "Milestone Report"
+author: "Erik Johnson"
+date: "January 4, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Synopsis
+
+In this report, we demonstrate that we've downloaded the corpora dataset and present interesting summary statistics about the data. We discuss additional interesting aspects of the data and present our progress and plan in developing a prediction model. Finally, we discuss our plans for the final Shiny app.
+
+## Loading the Data
+
+We downloaded the corpora dataset from the course website here: [https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip]
+
+Extracting the archive, we find the data organized into the following structure (along with analogous files/folders for de_DE, fi_FI, and ru_RU):
+
+- final
+    - en_US
+        - en_US.blogs.txt
+        - en_US.news.txt
+        - en_US.twitter.txt
+
+In this project, we only work with the English (en_US) files.
+
+```{r fileNames}
+# Store the data file names for brevity
+fileNameBlogs <- "final/en_US/en_US.blogs.txt"
+fileNameNews <- "final/en_US/en_US.news.txt"
+fileNameTwitter <- "final/en_US/en_US.twitter.txt"
+```
+
+We first inspect the size of the files on disk (in MB):
+```{r checkFileSizes}
+file.info(fileNameBlogs)$size / 10^6
+file.info(fileNameNews)$size / 10^6
+file.info(fileNameTwitter)$size / 10^6
+```
+
+We also check how many lines are in each file:
+```{r getRawNumberOfLines,warning=FALSE,cache=TRUE}
+numLines <- rep.int(0, 3)
+names(numLines) <- c("Blogs", "News", "Twitter")
+con <- file(fileNameBlogs, "r")
+numLines["Blogs"] <- length(readLines(con))
+close(con)
+
+con <- file(fileNameNews, "r")
+numLines["News"] <- length(readLines(con))
+close(con)
+
+con <- file(fileNameTwitter, "r")
+numLines["Twitter"] <- length(readLines(con))
+close(con)
+```
+```{r showNumberOfLines}
+numLines
+```
+
+We see that the file sizes are quite large, much too large for an initial exploratory data analysis. For our initial exploratory data analysis, we aim to work with a reduced dataset.
+
+To help us in this task, we create a function that takes a file name and a probability, and returns a vector containing a selection of lines from the file chosen at random according to the given probability.
+
+```{r readUtilities,echo=FALSE}
+knitr::read_chunk("utilities.R")
+```
+```{r utilityFunctionGetDataSample}
+```
+
+With this function, we load 10% of the lines from the files. This still gives us many thousands of lines to work with, but the memory footprint and performance is manageable for exploratory analysis.
+
+```{r loadRandomLines,cache=TRUE}
+p <- 0.1
+set.seed(258179)
+linesBlogs <- getDataSample(fileNameBlogs, p)
+linesNews <- getDataSample(fileNameNews, p)
+linesTwitter <- getDataSample(fileNameTwitter, p)
+numLines["Blogs"] <- length(linesBlogs)
+numLines["News"] <- length(linesNews)
+numLines["Twitter"] <- length(linesTwitter)
+numLines
+```
+
+We also check the memory size of the loaded data (in MB):
+```{r checkObjectMemory}
+object.size(linesBlogs)
+object.size(linesNews)
+object.size(linesTwitter)
+```
+
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
