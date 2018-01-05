@@ -13,7 +13,14 @@ knitr::opts_chunk$set(echo = TRUE)
 
 In this report, we demonstrate that we've downloaded the corpora dataset and present interesting summary statistics about the data. We discuss additional interesting aspects of the data and present our progress and plan in developing a prediction model. Finally, we discuss our plans for the final Shiny app.
 
-## Loading the Data
+## Libraries
+We start by loading the R libraries used in the project.
+```{r loadLibraries,message=FALSE,warning=FALSE}
+library(quanteda)
+library(lexicon)
+```
+
+## Downloading the Data
 
 We downloaded the corpora dataset from the course website here: [https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip]
 
@@ -27,14 +34,13 @@ Extracting the archive, we find the data organized into the following structure 
 
 In this project, we only work with the English (en_US) files.
 
+We first inspect the size of the files on disk (in MB):
 ```{r fileNames}
 # Store the data file names for brevity
 fileNameBlogs <- "final/en_US/en_US.blogs.txt"
 fileNameNews <- "final/en_US/en_US.news.txt"
 fileNameTwitter <- "final/en_US/en_US.twitter.txt"
 ```
-
-We first inspect the size of the files on disk (in MB):
 ```{r checkFileSizes}
 file.info(fileNameBlogs)$size / 10^6
 file.info(fileNameNews)$size / 10^6
@@ -63,7 +69,9 @@ numLines
 
 We see that the file sizes are quite large, much too large for an initial exploratory data analysis. For our initial exploratory data analysis, we aim to work with a reduced dataset.
 
-To help us in this task, we create a function that takes a file name and a probability, and returns a vector containing a selection of lines from the file chosen at random according to the given probability.
+## Loading the Data
+
+To assist with retrieving a reduced data set for our exploratory data analysis, we create a function that takes a file name and a probability, and returns a vector containing a selection of lines from the file chosen at random according to the given probability.
 
 ```{r readUtilities,echo=FALSE}
 knitr::read_chunk("utilities.R")
@@ -71,9 +79,8 @@ knitr::read_chunk("utilities.R")
 ```{r utilityFunctionGetDataSample}
 ```
 
-With this function, we load 10% of the lines from the files. This still gives us many thousands of lines to work with, but the memory footprint and performance is manageable for exploratory analysis.
-
-```{r loadRandomLines,cache=TRUE}
+With this function, we load ~10% of the lines from the files. This still gives us many thousands of lines to work with, but the memory footprint and performance is manageable for exploratory analysis.
+```{r loadRandomLines,cache=TRUE,warning=FALSE}
 p <- 0.1
 set.seed(258179)
 linesBlogs <- getDataSample(fileNameBlogs, p)
@@ -83,20 +90,58 @@ numLines["Blogs"] <- length(linesBlogs)
 numLines["News"] <- length(linesNews)
 numLines["Twitter"] <- length(linesTwitter)
 numLines
+object.size(linesBlogs, units="mb")
+object.size(linesNews, units="mb")
+object.size(linesTwitter, units="mb")
 ```
 
-We also check the memory size of the loaded data (in MB):
-```{r checkObjectMemory}
-object.size(linesBlogs)
-object.size(linesNews)
-object.size(linesTwitter)
+## Tokenizing the Data
+
+We use the quanteda package to convert the data into a corpus object.
+```{r createCorpora}
+corpusBlogs <- corpus(linesBlogs)
+corpusNews <- corpus(linesNews)
+corpusTwitter <- corpus(linesTwitter)
 ```
 
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+Next, we create a document feature matrix (DFM) that tokenizes the corpora (for now, we don't transform the tokens other than to make them all lower case):
+```{r createDFM}
+dfmBlogs <- dfm(corpusBlogs)
+dfmNews <- dfm(corpusNews)
+dfmTwitter <- dfm(corpusTwitter)
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+From here, we calculate the frequency in which each token appears, and display the top 20 most frequent tokens for each data set:
+```{r getTokenFrequencies}
+tokenFreqsBlogs <- data.frame(token = colnames(dfmBlogs), freq = colSums(dfmBlogs), row.names = NULL, stringsAsFactors = FALSE)
+tokenFreqsNews <- data.frame(token = colnames(dfmNews), freq = colSums(dfmNews), row.names = NULL, stringsAsFactors = FALSE)
+tokenFreqsTwitter <- data.frame(token = colnames(dfmTwitter), freq = colSums(dfmTwitter), row.names = NULL, stringsAsFactors = FALSE)
+head(tokenFreqsBlogs[order(-tokenFreqsBlogs$freq),], 20)
+head(tokenFreqsNews[order(-tokenFreqsNews$freq),], 20)
+head(tokenFreqsTwitter[order(-tokenFreqsTwitter$freq),], 20)
+```
+
+We see that many tokens won't be useful in our prediction model:
+
+- Punctuation
+- Numbers
+- Symbols
+
+Other tokens that we want in our prediction model aren't very interesting for exploratory analysis (some common stopwords, e.g., "and", "the", etc.). We re-tokenize, removing punctuation, numbers, and stopwords. We also stem the words to get a sense how often specific stems are used:
+```{r recreateTokenFrequencies}
+dfmBlogs <- dfm(corpusBlogs, remove = stopwords("english"), remove_punct = TRUE, remove_symbols = TRUE, remove_numbers = TRUE)
+dfmNews <- dfm(corpusNews, remove = stopwords("english"), remove_punct = TRUE, remove_symbols = TRUE, remove_numbers = TRUE)
+dfmTwitter <- dfm(corpusTwitter, remove = stopwords("english"), remove_punct = TRUE, remove_symbols = TRUE, remove_numbers = TRUE)
+tokenFreqsBlogs <- data.frame(token = colnames(dfmBlogs), freq = colSums(dfmBlogs), row.names = NULL, stringsAsFactors = FALSE)
+tokenFreqsNews <- data.frame(token = colnames(dfmNews), freq = colSums(dfmNews), row.names = NULL, stringsAsFactors = FALSE)
+tokenFreqsTwitter <- data.frame(token = colnames(dfmTwitter), freq = colSums(dfmTwitter), row.names = NULL, stringsAsFactors = FALSE)
+head(tokenFreqsBlogs[order(-tokenFreqsBlogs$freq),], 20)
+head(tokenFreqsNews[order(-tokenFreqsNews$freq),], 20)
+head(tokenFreqsTwitter[order(-tokenFreqsTwitter$freq),], 20)
+```
+
+## Profanity
+
+Our strategy is to create our prediction model with profanity included, and then filter it out in our Shiny app. This allows us to train the model without corrupting our n-grams by removing profane words from within phrases, and still filter out the profanity for the end user. We can also simulate parental controls by making the profane filter toggleable to the end user.
+
+To get our list of profane words, we use the R package "lexicon". This library provides several lists of common profane words. For this project, we use profanity_google which contains over 450 profane words flagged by google.

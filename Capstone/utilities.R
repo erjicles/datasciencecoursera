@@ -1,3 +1,5 @@
+library(quanteda)
+
 ## @knitr utilityFunctionGetDataSample
 
 ## This function takes a file name and optionally a probability.
@@ -38,6 +40,32 @@ getDataSample <- function (fileName, p = -1.0) {
     
     # Return the result
     result
+    
+}
+
+
+## @knitr utilityFunctionGetCorpus
+
+## This function takes a file name and optionally a probability.
+## It returns a corpus object from the quanteda package representing the data in
+## the file.
+getCorpus <- function (fileName, p = -1.0) {
+    corpus(getDataSample(fileName, p))
+}
+
+
+## @knitr utilityFunctionGetTokenizedData
+
+## This function takes a file name and optionally a probability.
+## It returns a document feature matrix containing a tokenized representation
+## of the file.
+getTokenizedData <- function (fileName, p = -1.0) {
+    
+    # Get the corpus
+    c <- corpus(getDataSample(fileName, p))
+    
+    # Return the document feature matrix
+    dfm(c)
     
 }
 
