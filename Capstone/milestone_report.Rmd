@@ -11,13 +11,15 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Synopsis
 
-In this report, we demonstrate that we've downloaded the corpora dataset and present interesting summary statistics about the data. We discuss additional interesting aspects of the data and present our progress and plan in developing a prediction model. Finally, we discuss our plans for the final Shiny app.
+In this report, we demonstrate that we've downloaded the corpora dataset and present summary statistics about the data. We discuss additional interesting aspects of the data and present our plan in developing a prediction model for the final Shiny app.
 
 ## Libraries
 We start by loading the R libraries used in the project.
 ```{r loadLibraries,message=FALSE,warning=FALSE}
 library(quanteda)
+library(readtext)
 library(lexicon)
+library(ggplot2)
 ```
 
 ## Downloading the Data
@@ -47,7 +49,7 @@ file.info(fileNameNews)$size / 10^6
 file.info(fileNameTwitter)$size / 10^6
 ```
 
-We also check how many lines are in each file:
+We also check how many lines are in each file, and how many tokens are contained in the data:
 ```{r getRawNumberOfLines,warning=FALSE,cache=TRUE}
 numLines <- rep.int(0, 3)
 names(numLines) <- c("Blogs", "News", "Twitter")
@@ -66,13 +68,15 @@ close(con)
 ```{r showNumberOfLines}
 numLines
 ```
+```{r numberOfTokens,cache=TRUE,warning=FALSE}
+summary(corpus(readtext("final/en_US/*.txt")))
+```
 
 We see that the file sizes are quite large, much too large for an initial exploratory data analysis. For our initial exploratory data analysis, we aim to work with a reduced dataset.
 
 ## Loading the Data
 
 To assist with retrieving a reduced data set for our exploratory data analysis, we create a function that takes a file name and a probability, and returns a vector containing a selection of lines from the file chosen at random according to the given probability.
-
 ```{r readUtilities,echo=FALSE}
 knitr::read_chunk("utilities.R")
 ```
@@ -86,13 +90,20 @@ set.seed(258179)
 linesBlogs <- getDataSample(fileNameBlogs, p)
 linesNews <- getDataSample(fileNameNews, p)
 linesTwitter <- getDataSample(fileNameTwitter, p)
+linesAll <- c(getDataSample(fileNameBlogs, p), 
+              getDataSample(fileNameNews, p), 
+              getDataSample(fileNameTwitter, p))
 numLines["Blogs"] <- length(linesBlogs)
 numLines["News"] <- length(linesNews)
 numLines["Twitter"] <- length(linesTwitter)
+numLines["All"] <- length(linesAll)
 numLines
-object.size(linesBlogs, units="mb")
-object.size(linesNews, units="mb")
-object.size(linesTwitter, units="mb")
+```
+```{r showObjectSize}
+format(object.size(linesBlogs), units="MB")
+format(object.size(linesNews), units="MB")
+format(object.size(linesTwitter), units="MB")
+format(object.size(linesAll), units="MB")
 ```
 
 ## Tokenizing the Data
@@ -102,23 +113,29 @@ We use the quanteda package to convert the data into a corpus object.
 corpusBlogs <- corpus(linesBlogs)
 corpusNews <- corpus(linesNews)
 corpusTwitter <- corpus(linesTwitter)
+corpusAll <- corpus(linesAll)
 ```
 
 Next, we create a document feature matrix (DFM) that tokenizes the corpora (for now, we don't transform the tokens other than to make them all lower case):
-```{r createDFM}
+```{r createDFM,cache=TRUE}
 dfmBlogs <- dfm(corpusBlogs)
 dfmNews <- dfm(corpusNews)
 dfmTwitter <- dfm(corpusTwitter)
+dfmAll <- dfm(corpusAll)
+```
+```{r dfmSummary}
+length(featnames(dfmBlogs))
+length(featnames(dfmNews))
+length(featnames(dfmTwitter))
+length(featnames(dfmAll))
 ```
 
-From here, we calculate the frequency in which each token appears, and display the top 20 most frequent tokens for each data set:
-```{r getTokenFrequencies}
-tokenFreqsBlogs <- data.frame(token = colnames(dfmBlogs), freq = colSums(dfmBlogs), row.names = NULL, stringsAsFactors = FALSE)
-tokenFreqsNews <- data.frame(token = colnames(dfmNews), freq = colSums(dfmNews), row.names = NULL, stringsAsFactors = FALSE)
-tokenFreqsTwitter <- data.frame(token = colnames(dfmTwitter), freq = colSums(dfmTwitter), row.names = NULL, stringsAsFactors = FALSE)
-head(tokenFreqsBlogs[order(-tokenFreqsBlogs$freq),], 20)
-head(tokenFreqsNews[order(-tokenFreqsNews$freq),], 20)
-head(tokenFreqsTwitter[order(-tokenFreqsTwitter$freq),], 20)
+From here, we calculate the frequency in which each token appears, and display the top 50 most frequent tokens for each data set:
+```{r getTokenFrequencies, cache=TRUE}
+topfeatures(dfmBlogs, n=50)
+topfeatures(dfmNews, n=50)
+topfeatures(dfmTwitter, n=50)
+topfeatures(dfmAll, n=50)
 ```
 
 We see that many tokens won't be useful in our prediction model:
@@ -127,21 +144,85 @@ We see that many tokens won't be useful in our prediction model:
 - Numbers
 - Symbols
 
-Other tokens that we want in our prediction model aren't very interesting for exploratory analysis (some common stopwords, e.g., "and", "the", etc.). We re-tokenize, removing punctuation, numbers, and stopwords. We also stem the words to get a sense how often specific stems are used:
-```{r recreateTokenFrequencies}
+Other tokens that we want in our prediction model aren't very interesting for exploratory analysis (e.g., stopwords such as "and", "the", etc.). 
+
+We re-tokenize, removing punctuation, numbers, and stopwords. We also stem the words to get a sense how often specific stems are used:
+```{r recreateTokenFrequencies, cache=TRUE}
 dfmBlogs <- dfm(corpusBlogs, remove = stopwords("english"), remove_punct = TRUE, remove_symbols = TRUE, remove_numbers = TRUE)
 dfmNews <- dfm(corpusNews, remove = stopwords("english"), remove_punct = TRUE, remove_symbols = TRUE, remove_numbers = TRUE)
 dfmTwitter <- dfm(corpusTwitter, remove = stopwords("english"), remove_punct = TRUE, remove_symbols = TRUE, remove_numbers = TRUE)
+dfmAll <- dfm(corpusAll, remove = stopwords("english"), remove_punct = TRUE, remove_symbols = TRUE, remove_numbers = TRUE)
+```
+```{r dfmSummaryTransformed}
+length(featnames(dfmBlogs))
+length(featnames(dfmNews))
+length(featnames(dfmTwitter))
+length(featnames(dfmAll))
+```
+
+We see that this simple process has reduced the number of features (although not by much). Once again, we show the most frequent tokens for each dataset.
+```{r tokenFrequenciesTransformed}
 tokenFreqsBlogs <- data.frame(token = colnames(dfmBlogs), freq = colSums(dfmBlogs), row.names = NULL, stringsAsFactors = FALSE)
 tokenFreqsNews <- data.frame(token = colnames(dfmNews), freq = colSums(dfmNews), row.names = NULL, stringsAsFactors = FALSE)
 tokenFreqsTwitter <- data.frame(token = colnames(dfmTwitter), freq = colSums(dfmTwitter), row.names = NULL, stringsAsFactors = FALSE)
-head(tokenFreqsBlogs[order(-tokenFreqsBlogs$freq),], 20)
-head(tokenFreqsNews[order(-tokenFreqsNews$freq),], 20)
-head(tokenFreqsTwitter[order(-tokenFreqsTwitter$freq),], 20)
+tokenFreqsAll <- data.frame(token = colnames(dfmAll), freq = colSums(dfmAll), row.names = NULL, stringsAsFactors = FALSE)
+mostFrequentTokensBlogs <- head(tokenFreqsBlogs[order(-tokenFreqsBlogs$freq),], 20)
+mostFrequentTokensNews <- head(tokenFreqsNews[order(-tokenFreqsNews$freq),], 20)
+mostFrequentTokensTwitter <- head(tokenFreqsTwitter[order(-tokenFreqsTwitter$freq),], 20)
+mostFrequentTokensAll <- head(tokenFreqsAll[order(-tokenFreqsAll$freq),], 20)
+topfeatures(dfmBlogs, n=50)
+topfeatures(dfmNews, n=50)
+topfeatures(dfmTwitter, n=50)
+topfeatures(dfmAll, n=50)
 ```
 
-## Profanity
+## Exploratory Statistics 
 
-Our strategy is to create our prediction model with profanity included, and then filter it out in our Shiny app. This allows us to train the model without corrupting our n-grams by removing profane words from within phrases, and still filter out the profanity for the end user. We can also simulate parental controls by making the profane filter toggleable to the end user.
+Now that we've tokenized the data, we start to see some differences between the datasets. For example, the twitter data tends to consist of abbreviations and shortcuts, such as "u" instead of "you", "lol", and "rt" instead of retweet. On the other hand, the blog and news data seems to contain more whole words.
 
-To get our list of profane words, we use the R package "lexicon". This library provides several lists of common profane words. For this project, we use profanity_google which contains over 450 profane words flagged by google.
+We plot the frequencies of the top 20 most frequent tokens in histograms for each dataset.
+```{r tokenFrequencyHistogram}
+ggplot(data = mostFrequentTokensBlogs, 
+       mapping = aes(x = reorder(token, -freq), y = freq)) + 
+    geom_col() +
+    labs(x = "Token", y = "Frequency", title = "Frequency vs Token (Blogs)")
+ggplot(data = mostFrequentTokensNews, 
+       mapping = aes(x = reorder(token, -freq), y = freq)) + 
+    geom_col() +
+    labs(x = "Token", y = "Frequency", title = "Frequency vs Token (News)")
+ggplot(data = mostFrequentTokensTwitter, 
+       mapping = aes(x = reorder(token, -freq), y = freq)) + 
+    geom_col() +
+    labs(x = "Token", y = "Frequency", title = "Frequency vs Token (Twitter)")
+ggplot(data = mostFrequentTokensAll, 
+       mapping = aes(x = reorder(token, -freq), y = freq)) + 
+    geom_col() +
+    labs(x = "Token", y = "Frequency", title = "Frequency vs Token (All)")
+```
+
+We see that while some frequent tokens are common among the datasets, they each have their own unique signature. That implies that it would make sense to use the datasets separately when training a models for different contexts (e.g., if the user is tweeting, then it would make sense to only train from the twitter data). If the context isn't known, then we can train from the combined dataset.
+
+## Prediction Strategy
+
+Given our findings, we plan to train context-specific models (e.g., using only the blogs, news, or twitter data) for cases when the user-context is known, as well as a context-agnostic model using all of the datasets combined for cases when the context is unknown.
+
+Our general strategy will be to create tables of n-grams and their corresponding frequencies. At this time, we plan to use 1, 2, 3, 4, and 5-grams. To create a prediction given a user input, we plan to take the last n-1 words typed by the user and look up the frequencies for all n-grams starting with those words. Our prediction will then be the last word in the 3 matched n-grams with the highest frequencies.
+
+### Profanity
+
+We use the `profanity_google` vector from the R package "lexicon" as our list of profane words. It contains over 450 worlds flagged by Google as profane or indecent.
+
+Our strategy is to keep profanity included during model creation. This will allow us to give the user the option of including or excluding profanity. If the user opts to exclude profanity, then the app will exclude any n-grams that contain any of the profane words.
+
+## Shiny App
+
+Our shiny app will contain:
+
+- A text field for the user to enter their text
+- A parental control switch (i.e., whether to include or exclude profanity)
+- An optional context selector (e.g., if the user is composing a blog post, a news article, a tweet, or no context). 
+- A submit button
+
+When the user clicks submit, the app will take their selections and input text and presents 3 possible predicted words back to the user.
+
+If profanity is excluded, then the model will exclude any n-grams that contain any of the profanity words. If a context is given, then the model will use the n-grams from the relevant context model.
