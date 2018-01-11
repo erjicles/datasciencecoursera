@@ -54,6 +54,24 @@ getCorpus <- function (fileName, p = -1.0) {
 }
 
 
+## @knitr utilityFunctionGenerateDataSample
+
+## This function takes an input data file name, an output data file name, and
+## optionall a probability. It outputs the sample data to the output data file
+## and returns a corpus of the data.
+generateDataSample <- function (inputFile, outputFile, p = -1.0) {
+    s <- getDataSample(inputFile, p)
+    
+    con <- file(outputFile, "w")
+    for (l in s) {
+        writeLines(l, con)
+    }
+    close(con)
+    
+    corpus(s)
+}
+
+
 ## @knitr utilityFunctionGetTokenizedData
 
 ## This function takes a file name and optionally a probability.

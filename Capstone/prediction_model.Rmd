@@ -1,0 +1,91 @@
+---
+title: "Prediction Model"
+author: "Erik Johnson"
+date: "1/10/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r loadLibraries,message=FALSE,warning=FALSE}
+library(quanteda)
+library(readtext)
+library(lexicon)
+library(ggplot2)
+```
+
+```{r fileNames}
+# Store the data file names for brevity
+fileNameBlogs <- "final/en_US/en_US.blogs.txt"
+fileNameNews <- "final/en_US/en_US.news.txt"
+fileNameTwitter <- "final/en_US/en_US.twitter.txt"
+outputFileNameBlogs <- "sample_blogs.txt"
+outputFileNameNews <- "sample_news.txt"
+outputFileNameTwitter <- "sample_twitter.txt"
+```
+
+```{r readUtilities,echo=FALSE}
+knitr::read_chunk("utilities.R")
+```
+```{r utilityFunctionGetDataSample}
+```
+```{r utilityFunctionGenerateDataSample}
+```
+
+```{r loadRandomLines,cache=TRUE,warning=FALSE}
+p <- 0.1
+set.seed(258179)
+corpusBlogs <- generateDataSample(fileNameBlogs, outputFileNameBlogs, p)
+corpusNews <- generateDataSample(fileNameNews, outputFileNameNews, p)
+corpusTwitter <- generateDataSample(fileNameTwitter, outputFileNameTwitter, p)
+corpusAll <- corpusBlogs + corpusNews + corpusTwitter
+```
+
+```{r ngrams, cache=TRUE}
+ngram_counts <- 1:4
+dfmBlogs1 <- dfm(corpusBlogs, ngrams=1,
+                remove_punct = TRUE, 
+                remove_symbols = TRUE, 
+                remove_numbers = TRUE)
+dfmBlogs2 <- dfm(corpusBlogs, ngrams=2,
+                remove_punct = TRUE, 
+                remove_symbols = TRUE, 
+                remove_numbers = TRUE)
+dfmBlogs3 <- dfm(corpusBlogs, ngrams=3,
+                remove_punct = TRUE, 
+                remove_symbols = TRUE, 
+                remove_numbers = TRUE)
+dfmBlogs4 <- dfm(corpusBlogs, ngrams=4,
+                remove_punct = TRUE, 
+                remove_symbols = TRUE, 
+                remove_numbers = TRUE)
+```
+
+```{r ngramFrequencies,cache=TRUE}
+tokenFreqsBlogs1 <- data.frame(token = colnames(dfmBlogs1),
+                                 freq = colSums(dfmBlogs1),
+                                 row.names = NULL,
+                                 stringsAsFactors = FALSE)
+tokenFreqsBlogs2 <- data.frame(token = colnames(dfmBlogs2),
+                                 freq = colSums(dfmBlogs2),
+                                 row.names = NULL,
+                                 stringsAsFactors = FALSE)
+tokenFreqsBlogs3 <- data.frame(token = colnames(dfmBlogs3),
+                                 freq = colSums(dfmBlogs3),
+                                 row.names = NULL,
+                                 stringsAsFactors = FALSE)
+tokenFreqsBlogs4 <- data.frame(token = colnames(dfmBlogs4),
+                                 freq = colSums(dfmBlogs4),
+                                 row.names = NULL,
+                                 stringsAsFactors = FALSE)
+```
+
+```{r showMostFrequent}
+topfeatures(dfmBlogs1, n=50)
+topfeatures(dfmBlogs2, n=50)
+topfeatures(dfmBlogs3, n=50)
+topfeatures(dfmBlogs4, n=50)
+```
+
