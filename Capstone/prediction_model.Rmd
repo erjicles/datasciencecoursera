@@ -43,49 +43,123 @@ corpusTwitter <- generateDataSample(fileNameTwitter, outputFileNameTwitter, p)
 corpusAll <- corpusBlogs + corpusNews + corpusTwitter
 ```
 
+```{r wee,cache=TRUE}
+corpusAll <- corpus(readtext("final/en_US/*.txt"))
+```
+
 ```{r ngrams, cache=TRUE}
 ngram_counts <- 1:4
-dfmBlogs1 <- dfm(corpusBlogs, ngrams=1,
+dfmAll1 <- dfm(corpusAll, ngrams=1,
                 remove_punct = TRUE, 
                 remove_symbols = TRUE, 
-                remove_numbers = TRUE)
-dfmBlogs2 <- dfm(corpusBlogs, ngrams=2,
+                remove_numbers = TRUE, remove=stopwords("english"))
+dfmAll2 <- dfm(corpusAll, ngrams=2,
                 remove_punct = TRUE, 
                 remove_symbols = TRUE, 
-                remove_numbers = TRUE)
-dfmBlogs3 <- dfm(corpusBlogs, ngrams=3,
+                remove_numbers = TRUE, remove=stopwords("english"))
+dfmAll3 <- dfm(corpusAll, ngrams=3,
                 remove_punct = TRUE, 
                 remove_symbols = TRUE, 
-                remove_numbers = TRUE)
-dfmBlogs4 <- dfm(corpusBlogs, ngrams=4,
+                remove_numbers = TRUE, remove=stopwords("english"))
+dfmAll4 <- dfm(corpusAll, ngrams=4,
                 remove_punct = TRUE, 
                 remove_symbols = TRUE, 
-                remove_numbers = TRUE)
+                remove_numbers = TRUE, remove=stopwords("english"))
 ```
 
 ```{r ngramFrequencies,cache=TRUE}
-tokenFreqsBlogs1 <- data.frame(token = colnames(dfmBlogs1),
-                                 freq = colSums(dfmBlogs1),
+tokenFreqsAll1 <- data.frame(token = colnames(dfmAll1),
+                                 freq = colSums(dfmAll1),
                                  row.names = NULL,
                                  stringsAsFactors = FALSE)
-tokenFreqsBlogs2 <- data.frame(token = colnames(dfmBlogs2),
-                                 freq = colSums(dfmBlogs2),
+tokenFreqsAll2 <- data.frame(token = colnames(dfmAll2),
+                                 freq = colSums(dfmAll2),
                                  row.names = NULL,
                                  stringsAsFactors = FALSE)
-tokenFreqsBlogs3 <- data.frame(token = colnames(dfmBlogs3),
-                                 freq = colSums(dfmBlogs3),
+tokenFreqsAll3 <- data.frame(token = colnames(dfmAll3),
+                                 freq = colSums(dfmAll3),
                                  row.names = NULL,
                                  stringsAsFactors = FALSE)
-tokenFreqsBlogs4 <- data.frame(token = colnames(dfmBlogs4),
-                                 freq = colSums(dfmBlogs4),
+tokenFreqsAll4 <- data.frame(token = colnames(dfmAll4),
+                                 freq = colSums(dfmAll4),
                                  row.names = NULL,
                                  stringsAsFactors = FALSE)
 ```
 
 ```{r showMostFrequent}
-topfeatures(dfmBlogs1, n=50)
-topfeatures(dfmBlogs2, n=50)
-topfeatures(dfmBlogs3, n=50)
-topfeatures(dfmBlogs4, n=50)
+#topfeatures(dfmAll1, n=50)
+#topfeatures(dfmAll2, n=50)
+#topfeatures(dfmAll3, n=50)
+#topfeatures(dfmAll4, n=50)
+```
+
+```{r}
+head(tokenFreqsAll4)
+q1 <- "The guy in front of me just bought a pound of bacon, a bouquet, and a case of"
+c1 <- corpus(q1)
+dfm1 <- dfm(c1, ngrams=3,
+                remove_punct = TRUE, 
+                remove_symbols = TRUE, 
+                remove_numbers = TRUE, remove=stopwords("english"))
+q1t <- paste("^", tail(colnames(dfm1), n=1), sep="")
+q1t
+q1f <- tokenFreqsAll4[grepl(q1t, tokenFreqsAll4$token),]
+q1f
+head(q1f[order(q1f$freq, decreasing=TRUE),], n=10)
+
+# q2 <- "^would_mean_the"
+# q2 <- "^mean_the"
+# q2f <- tokenFreqsAll4[grepl(q2, tokenFreqsAll4$token),]
+# q2f <- tokenFreqsAll3[grepl(q2, tokenFreqsAll3$token),]
+# q2f
+# 
+# q3 <- "^make_me_the"
+# q3 <- "^me_the"
+# q3f <- tokenFreqsAll4[grepl(q3, tokenFreqsAll4$token),]
+# q3f <- tokenFreqsAll3[grepl(q3, tokenFreqsAll3$token),]
+# q3f
+# 
+# q4 <- "^struggling_but_the"
+# q4 <- "^but_the"
+# q4f <- tokenFreqsAll4[grepl(q4, tokenFreqsAll4$token),]
+# q4f <- tokenFreqsAll3[grepl(q4, tokenFreqsAll3$token),]
+# q4f
+# 
+# q5 <- "^date_at_the"
+# q5 <- "^at_the"
+# q5f <- tokenFreqsAll4[grepl(q5, tokenFreqsAll4$token),]
+# q5f <- tokenFreqsAll3[grepl(q5, tokenFreqsAll3$token),]
+# q5f
+# 
+# q6 <- "^be_on_my"
+# q6 <- "^on_my"
+# q6f <- tokenFreqsAll4[grepl(q6, tokenFreqsAll4$token),]
+# q6f <- tokenFreqsAll3[grepl(q6, tokenFreqsAll3$token),]
+# q6f
+# 
+# q7 <- "^in_quite_some"
+# q7 <- "^quite_some"
+# q7f <- tokenFreqsAll4[grepl(q7, tokenFreqsAll4$token),]
+# q7f <- tokenFreqsAll3[grepl(q7, tokenFreqsAll3$token),]
+# q7f
+# 
+# q8 <- "^eyes_with_his"
+# q8 <- "^with_his"
+# q8f <- tokenFreqsAll4[grepl(q8, tokenFreqsAll4$token),]
+# q8f <- tokenFreqsAll3[grepl(q8, tokenFreqsAll3$token),]
+# q8f
+# 
+# q9 <- "^faith_during_the"
+# q9 <- "^during_the"
+# q9f <- tokenFreqsAll4[grepl(q9, tokenFreqsAll4$token),]
+# q9f <- tokenFreqsAll3[grepl(q9, tokenFreqsAll3$token),]
+# q9f
+# 
+# q10 <- "^you_must_be"
+# q10 <- "^must_be"
+# q10f <- tokenFreqsAll4[grepl(q10, tokenFreqsAll4$token),]
+# q10f <- tokenFreqsAll3[grepl(q10, tokenFreqsAll3$token),]
+# q10f
+
 ```
 
