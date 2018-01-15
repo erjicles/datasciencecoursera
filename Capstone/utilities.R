@@ -1,5 +1,34 @@
 library(quanteda)
 
+## @knitr utilityFunctionGetLinesFromFile
+
+## This function takes a file name, a starting line, and a maximal number of
+## lines to read, and returns a vector reading those lines from the file.
+getLinesFromFile <- function (fileName, startLine, n) {
+    
+    result <- character()
+    
+    con <- file(fileName, "r")
+    counter <- 0
+    while ( TRUE ) {
+        counter <- counter + 1
+        l <- readLines(con, n = 1)
+        if (length(l) == 0) {
+            break
+        }
+        if (counter >= startLine && counter < startLine + n) {
+            result <- c(result, l)
+        } else if (counter >= startLine + n) {
+            break
+        }
+    }
+    close(con)
+    
+    result
+}
+
+
+
 ## @knitr utilityFunctionGetDataSample
 
 ## This function takes a file name and optionally a probability.
@@ -87,3 +116,56 @@ getTokenizedData <- function (fileName, p = -1.0) {
     
 }
 
+## @knitr utilityFunctionGetDFM
+
+## This function takes a corpus and an integer n and returns a dfm
+## of n-grams.
+getDFM <- function (c, n = 1) {
+    
+    t <- tokens(c, 
+                remove_numbers = TRUE, 
+                remove_punct = TRUE, 
+                remove_symbols = TRUE)
+    
+    dfm(t, ngrams=n)
+}
+
+
+## @knitr utilityFunctionGetNGramFrequencies
+
+## This function takes a DFM and returns a dataframe of the n-grams and their
+## frequencies.
+getNGramFrequencies <- function (d) {
+    data.frame(
+        ngram = colnames(d),
+        base = sapply(colnames(d), 
+          function(t) {
+              if (grepl("_", t) == TRUE) {
+                  strsplit(t, "_(?=[^_]+$)", perl=TRUE)[[1]][1]
+              } else {""}
+          }),
+        predicted = sapply(colnames(d),
+           function(t) {
+               if (grepl("_", t) == TRUE) {
+                   strsplit(t, "_(?=[^_]+$)", perl=TRUE)[[1]][2]
+               } else {t}
+           }),
+        freq = colSums(d),
+        row.names = NULL,
+        stringsAsFactors = FALSE)
+}
+
+
+## @knitr utilityFunctionAppendNGramFrequencies
+
+## This function takes a dataframe of n-gram frequencies and another dataframe
+## of n-gram frequencies and adds frequency counts and new n-grams to the former.
+appendNGramFrequencies <- function (totalCounts, newCounts) {
+    # Merge
+    totalCounts <- rbind(totalCounts, newCounts)
+    
+    # Aggregate
+    totalCounts <- aggregate(freq ~ ., totalCounts, sum)
+    
+    totalCounts
+}
