@@ -1,0 +1,62 @@
+---
+title: "Prediction Model"
+author: "Erik Johnson"
+date: "1/10/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r loadLibraries,message=FALSE,warning=FALSE}
+library(data.table)
+library(dplyr)
+library(quanteda)
+library(readtext)
+library(lexicon)
+library(ggplot2)
+```
+
+```{r readUtilities,echo=FALSE}
+knitr::read_chunk("utilities.R")
+```
+```{r utilityFunctionGetNGramFileName}
+```
+```{r utilityFunctionLogProgress}
+```
+
+```{r fileNames}
+nStart <- 1
+nMax <- 6
+dataDirectory <- "ngrams/"
+destinationDirectory <- "/Volumes/Shared/capstone/ngrams_filtered/"
+fileNameProgress <- paste(destinationDirectory, "progress.txt", sep="")
+```
+
+```{r processFiles}
+logProgress("----------", fileNameProgress)
+logProgress(paste("nStart: ", nStart), fileNameProgress)
+logProgress(paste("nMax: ", nMax), fileNameProgress)
+dataTypes <- c("Blogs", "News", "Twitter", "All")
+
+for (type in dataTypes) {
+    logProgress(paste("type:", type), fileNameProgress)
+    for (n in nStart:nMax) {
+        logProgress(paste("--n: ", n), fileNameProgress)
+        for (l in letters) {
+            logProgress(paste("----l: ", l), fileNameProgress)
+            dataFileName <- paste(dataDirectory, 
+                                  getNGramFileName(type, l, n), 
+                                  sep="")
+            destinationFileName <- paste(destinationDirectory,
+                                         getNGramFileName(type, l, n),
+                                         sep="")
+            filtered_ngrams <-
+                fread(dataFileName) %>%
+                filter(freq > 1)
+            fwrite(filtered_ngrams, destinationFileName)
+        }
+    }
+}
+```

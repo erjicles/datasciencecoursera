@@ -1,4 +1,7 @@
+library(data.table)
+library(dplyr)
 library(quanteda)
+library(lubridate)
 
 ## @knitr utilityFunctionGetLinesFromFile
 
@@ -136,7 +139,7 @@ getDFM <- function (c, n = 1) {
 ## This function takes a DFM and returns a dataframe of the n-grams and their
 ## frequencies.
 getNGramFrequencies <- function (d) {
-    data.frame(
+    data.table(
         ngram = colnames(d),
         base = sapply(colnames(d), 
           function(t) {
@@ -150,9 +153,7 @@ getNGramFrequencies <- function (d) {
                    strsplit(t, "_(?=[^_]+$)", perl=TRUE)[[1]][2]
                } else {t}
            }),
-        freq = colSums(d),
-        row.names = NULL,
-        stringsAsFactors = FALSE)
+        freq = colSums(d))
 }
 
 
@@ -161,11 +162,36 @@ getNGramFrequencies <- function (d) {
 ## This function takes a dataframe of n-gram frequencies and another dataframe
 ## of n-gram frequencies and adds frequency counts and new n-grams to the former.
 appendNGramFrequencies <- function (totalCounts, newCounts) {
-    # Merge
-    totalCounts <- rbind(totalCounts, newCounts)
-    
-    # Aggregate
-    totalCounts <- aggregate(freq ~ ., totalCounts, sum)
-    
-    totalCounts
+    totalCounts %>%
+        # Add rows
+        rbind(newCounts) %>%
+        # Group
+        group_by(ngram, base, predicted) %>%
+        # Summarize to get new totals
+        summarize(freq = sum(freq))
+}
+
+
+## @knitr utilityFunctionLogProgress
+library(lubridate)
+## This function logs a message to a file
+logProgress <- function (message, fileName) {
+    write(
+        paste(
+            with_tz(Sys.time(), tz="America/Chicago"), 
+            ":", 
+            message), 
+        file=fileName, 
+        append=TRUE)
+}
+
+## @knitr utilityFunctionGetNGramFileName
+## Type: Blogs, News, Twitter, All
+getNGramFileName <- function (type, firstLetter, n) {
+    paste("nGrams",
+          type,
+          n, 
+          "_", 
+          firstLetter, 
+          ".csv", sep="") 
 }
