@@ -187,11 +187,15 @@ logProgress <- function (message, fileName) {
 
 ## @knitr utilityFunctionGetNGramFileName
 ## Type: Blogs, News, Twitter, All
-getNGramFileName <- function (type, firstLetter, n) {
-    paste("nGrams",
+getNGramFileName <- function (type, firstLetter, n, directory = "", isCompressed = FALSE) {
+    fileName <- paste(directory, "nGrams",
           type,
           n, 
           "_", 
           firstLetter, 
           ".csv", sep="") 
+    if (isCompressed == TRUE) {
+        fileName <- paste(fileName, ".gz", sep="")
+    }
+    fileName
 }
