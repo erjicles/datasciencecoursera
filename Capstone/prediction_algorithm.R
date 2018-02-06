@@ -114,7 +114,7 @@ getTestData <- function () {
         testDataFrequencies <- testDataFrequencies %>%
             rbind(getNGramFrequencies(getDFM(data_corpus_inaugural, i)))
     }
-    
+    testDataFrequencies
 }
 
 # 1. give       x die
