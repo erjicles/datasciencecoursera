@@ -1,0 +1,61 @@
+---
+title: "Getting and Cleaning the Data"
+author: "Erik Johnson"
+date: "12/30/2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading the Data
+
+```{r libraries,message=FALSE}
+library(quanteda)
+library(readtext)
+```
+
+```{r setseed}
+set.seed(564738)
+```
+
+```{r readdata}
+df <- readtext("../final/en_US/*.txt")
+cor <- corpus(df)
+f <- dfm(cor, remove = stopwords("english"), remove_punct = TRUE, tolower = TRUE)
+topfeatures(f, 20)
+```
+
+
+```{r readdataTM}
+bc <- Corpus(VectorSource(readLines("../final/en_US/en_US.blogs.txt", n=10000)))
+
+# Make all words lowercase
+bc <- tm_map(bc, tolower)
+
+# Remove all stopwords
+bc <- tm_map(bc, removeWords, stopwords("english"))
+
+# Remove whitespace
+bc <- tm_map(bc, stripWhitespace)
+
+# Remove numbers
+#bc <- tm_map(bc, tolower)
+
+# Remove punctuation
+#bc <- tm_map(bc, removePunctuation)
+
+# Get the term document matrix
+dtm <- DocumentTermMatrix(bc)
+
+# Get the frequency of each word
+freq <- colSums(as.matrix(dtm))
+
+# Order by frequency
+ord <- order(freq, decreasing=TRUE)
+```
+
+```{r showtokens}
+freq[ord[1:100]]
+```
