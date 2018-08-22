@@ -19,7 +19,8 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
         textInput("inputPhrase", "Phrase:", value=""),
-        checkboxInput("filterProfanity", "Filter profanity:", value=TRUE)
+        checkboxInput("filterProfanity", "Filter profanity", value=TRUE),
+        submitButton("Submit")
     ),
     
     # Show a plot of the generated distribution

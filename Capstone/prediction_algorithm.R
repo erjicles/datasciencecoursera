@@ -117,6 +117,17 @@ getTestData <- function () {
     testDataFrequencies
 }
 
+testModel <- function () {
+    testData <- getTestData()
+    for (i in 1:10) {
+        testString <- gsub("_", " ", testData[i, "base"][[1]])
+        predicted <- predictNext(testString)
+        actual <- testData[i, "predicted"][[1]]
+        testData[i, "correct"] <- actual %in% predicted
+    }
+    sum(testData$correct) / nrow(testData)
+}
+
 # 1. give       x die
 # 2. marital    
 # 3. weekend    
