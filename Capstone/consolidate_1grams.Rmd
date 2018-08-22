@@ -1,0 +1,58 @@
+---
+title: "Prediction Model"
+author: "Erik Johnson"
+date: "1/10/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r loadLibraries,message=FALSE,warning=FALSE}
+library(data.table)
+library(dplyr)
+library(quanteda)
+library(readtext)
+library(lexicon)
+library(ggplot2)
+```
+
+```{r readUtilities,echo=FALSE}
+knitr::read_chunk("utilities.R")
+```
+```{r utilityFunctionGetNGramFileName}
+```
+```{r utilityFunctionLogProgress}
+```
+
+```{r fileNames}
+nStart <- 1
+nMax <- 6
+dataDirectory <- "/Volumes/Shared/capstone/ngrams_all_reduced/"
+destinationDirectory <- "/Volumes/Shared/capstone/ngrams_all_reduced/"
+fileNameProgress <- paste(destinationDirectory, "progress.txt", sep="")
+```
+
+```{r processFiles}
+result <- data.table(
+    ngram = character(),
+    base = character(),
+    predicted = character(),
+    freq = integer())
+
+for (l in letters) {
+    dataFileName <- paste(dataDirectory, 
+                          getNGramFileName("All", l, 1), 
+                          sep="")
+    
+    result <- result %>%
+        rbind(fread(dataFileName))
+        
+}
+
+destinationFileName <- paste(destinationDirectory,
+                             getNGramFileName("All", "All", 1),
+                             sep="")
+fwrite(result, destinationFileName)
+```
