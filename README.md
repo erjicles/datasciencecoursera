@@ -8,6 +8,8 @@ involving natural language processing (NLP). The code here represents my
 solutions to the various course projects and capstone. If you are taking the
 course, please do not copy my solutions.
 
+View my capstone project [here](https://github.com/erjicles/datasciencecoursera/tree/master/Capstone).
+
 ## Scripts
 
 Most of the solutions utilize the R programming language, and are often
